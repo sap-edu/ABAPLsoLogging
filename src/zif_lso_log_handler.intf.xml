@@ -1,0 +1,53 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_INTF" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <VSEOINTERF>
+    <CLSNAME>ZIF_LSO_LOG_HANDLER</CLSNAME>
+    <LANGU>E</LANGU>
+    <DESCRIPT>Log Handler Interface</DESCRIPT>
+    <EXPOSURE>2</EXPOSURE>
+    <STATE>1</STATE>
+    <UNICODE>X</UNICODE>
+   </VSEOINTERF>
+   <DESCRIPTIONS>
+    <SEOCOMPOTX>
+     <CLSNAME>ZIF_LSO_LOG_HANDLER</CLSNAME>
+     <CMPNAME>ERROR</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Add error</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZIF_LSO_LOG_HANDLER</CLSNAME>
+     <CMPNAME>INFO</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Add information</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZIF_LSO_LOG_HANDLER</CLSNAME>
+     <CMPNAME>MESSAGE</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Add message with type</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZIF_LSO_LOG_HANDLER</CLSNAME>
+     <CMPNAME>SUCCESS</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Add success</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZIF_LSO_LOG_HANDLER</CLSNAME>
+     <CMPNAME>TRACE_MESSAGE</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Add message with trace details</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZIF_LSO_LOG_HANDLER</CLSNAME>
+     <CMPNAME>WARNING</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Add warning</DESCRIPT>
+    </SEOCOMPOTX>
+   </DESCRIPTIONS>
+  </asx:values>
+ </asx:abap>
+</abapGit>

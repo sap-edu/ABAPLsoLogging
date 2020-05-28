@@ -1,0 +1,59 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_INTF" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <VSEOINTERF>
+    <CLSNAME>ZIF_LSO_LOG_FACTORY</CLSNAME>
+    <LANGU>E</LANGU>
+    <DESCRIPT>Log Factory</DESCRIPT>
+    <EXPOSURE>2</EXPOSURE>
+    <STATE>1</STATE>
+    <UNICODE>X</UNICODE>
+   </VSEOINTERF>
+   <DESCRIPTIONS>
+    <SEOCOMPOTX>
+     <CLSNAME>ZIF_LSO_LOG_FACTORY</CLSNAME>
+     <CMPNAME>CREATE_BY_STRUCTURE</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Create log by its structure</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZIF_LSO_LOG_FACTORY</CLSNAME>
+     <CMPNAME>CREATE_FROM_HANDLER</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Create logs from log handler</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZIF_LSO_LOG_FACTORY</CLSNAME>
+     <CMPNAME>DELETE</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Delete logs</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZIF_LSO_LOG_FACTORY</CLSNAME>
+     <CMPNAME>DELETE_COLLECTION</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Delete logs collection</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZIF_LSO_LOG_FACTORY</CLSNAME>
+     <CMPNAME>EXISTS</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Does log exist on DB?</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZIF_LSO_LOG_FACTORY</CLSNAME>
+     <CMPNAME>FIND</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Find logs by various search criteria.</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZIF_LSO_LOG_FACTORY</CLSNAME>
+     <CMPNAME>FIND_LAST_MESSAGES</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Find last messages by log ids</DESCRIPT>
+    </SEOCOMPOTX>
+   </DESCRIPTIONS>
+  </asx:values>
+ </asx:abap>
+</abapGit>

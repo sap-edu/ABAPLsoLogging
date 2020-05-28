@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_INTF" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <VSEOINTERF>
+    <CLSNAME>ZIF_LSO_LOG_HANDLER_FACTORY</CLSNAME>
+    <LANGU>E</LANGU>
+    <DESCRIPT>Log Handler Factory Interface</DESCRIPT>
+    <EXPOSURE>2</EXPOSURE>
+    <STATE>1</STATE>
+    <UNICODE>X</UNICODE>
+   </VSEOINTERF>
+   <DESCRIPTIONS>
+    <SEOCOMPOTX>
+     <CLSNAME>ZIF_LSO_LOG_HANDLER_FACTORY</CLSNAME>
+     <CMPNAME>CREATE_MAP_BY_KEYS</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Create log handlers map by keys</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZIF_LSO_LOG_HANDLER_FACTORY</CLSNAME>
+     <CMPNAME>CREATE_MAP_BY_LOGGABLE</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Create log handler map of ZIF_LSO_LOGGABLE_OBJECT objects</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZIF_LSO_LOG_HANDLER_FACTORY</CLSNAME>
+     <CMPNAME>GET_DUMMY_KEY</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Get log handler map dummy key</DESCRIPT>
+    </SEOCOMPOTX>
+   </DESCRIPTIONS>
+  </asx:values>
+ </asx:abap>
+</abapGit>

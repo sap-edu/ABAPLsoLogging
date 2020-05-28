@@ -1,0 +1,73 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_CLAS" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <VSEOCLASS>
+    <CLSNAME>ZCL_LSO_LOG_HEADERS</CLSNAME>
+    <LANGU>E</LANGU>
+    <DESCRIPT>LSO Log Headers</DESCRIPT>
+    <STATE>1</STATE>
+    <CLSCCINCL>X</CLSCCINCL>
+    <FIXPT>X</FIXPT>
+    <UNICODE>X</UNICODE>
+    <WITH_UNIT_TESTS>X</WITH_UNIT_TESTS>
+   </VSEOCLASS>
+   <DESCRIPTIONS>
+    <SEOCOMPOTX>
+     <CLSNAME>ZCL_LSO_LOG_HEADERS</CLSNAME>
+     <CMPNAME>CONSTRUCTOR</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>CONSTRUCTOR</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZCL_LSO_LOG_HEADERS</CLSNAME>
+     <CMPNAME>CREATE_REQUEST</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Creates Request Payload object.</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZCL_LSO_LOG_HEADERS</CLSNAME>
+     <CMPNAME>CREATE_RESPONSE</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Creates Response Payload object.</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZCL_LSO_LOG_HEADERS</CLSNAME>
+     <CMPNAME>GET_HEADERS</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Returns headers.</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZCL_LSO_LOG_HEADERS</CLSNAME>
+     <CMPNAME>GET_TRACE_ID</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Returns trace id.</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZCL_LSO_LOG_HEADERS</CLSNAME>
+     <CMPNAME>GET_TYPE</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Returns payload type (request/response/...).</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZCL_LSO_LOG_HEADERS</CLSNAME>
+     <CMPNAME>IS_SAVED</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Is payload already saved?</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZCL_LSO_LOG_HEADERS</CLSNAME>
+     <CMPNAME>SAVE_COLLECTION</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Save collection of payloads into DB.</DESCRIPT>
+    </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZCL_LSO_LOG_HEADERS</CLSNAME>
+     <CMPNAME>SET_SAVED</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Mark payload object as saved one.</DESCRIPT>
+    </SEOCOMPOTX>
+   </DESCRIPTIONS>
+  </asx:values>
+ </asx:abap>
+</abapGit>
