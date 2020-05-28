@@ -1,0 +1,195 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_MSAG" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <T100A>
+    <ARBGB>ZLSO_LOG</ARBGB>
+    <MASTERLANG>E</MASTERLANG>
+    <APPLCLASS>ZLSO</APPLCLASS>
+    <STEXT>automatically restored</STEXT>
+   </T100A>
+   <T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZLSO_LOG</ARBGB>
+     <MSGNR>000</MSGNR>
+     <TEXT>&amp;1&amp;2&amp;3&amp;4</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZLSO_LOG</ARBGB>
+     <MSGNR>001</MSGNR>
+     <TEXT>&amp;1 &amp;2 &amp;3 &amp;4</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZLSO_LOG</ARBGB>
+     <MSGNR>002</MSGNR>
+     <TEXT>&amp;1 seqnr field value has been exceeded!</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZLSO_LOG</ARBGB>
+     <MSGNR>003</MSGNR>
+     <TEXT>&amp;1 is locked for writing!</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZLSO_LOG</ARBGB>
+     <MSGNR>004</MSGNR>
+     <TEXT>Save error - &amp;1 &amp;2</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZLSO_LOG</ARBGB>
+     <MSGNR>005</MSGNR>
+     <TEXT>No parameters provided - &amp;1 &amp;2 &amp;3 &amp;4</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZLSO_LOG</ARBGB>
+     <MSGNR>006</MSGNR>
+     <TEXT>&amp;1 - &amp;2 &amp;3 &amp;4</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZLSO_LOG</ARBGB>
+     <MSGNR>007</MSGNR>
+     <TEXT>Cross Reference error - &amp;1 &amp;2</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZLSO_LOG</ARBGB>
+     <MSGNR>008</MSGNR>
+     <TEXT>Not found - &amp;1 &amp;2 &amp;3 &amp;4</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZLSO_LOG</ARBGB>
+     <MSGNR>009</MSGNR>
+     <TEXT>No ID for trace object!</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZLSO_LOG</ARBGB>
+     <MSGNR>010</MSGNR>
+     <TEXT>No customizing value for id - &amp;1</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZLSO_LOG</ARBGB>
+     <MSGNR>011</MSGNR>
+     <TEXT>Messages stripped; &amp;1 - &amp;2</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZLSO_LOG</ARBGB>
+     <MSGNR>012</MSGNR>
+     <TEXT>No authorization to run &amp;1 tcode!</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZLSO_LOG</ARBGB>
+     <MSGNR>020</MSGNR>
+     <TEXT>ZLSO_LOG &amp;1 - BizX Session cookie retrieval (&amp;2)</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZLSO_LOG</ARBGB>
+     <MSGNR>021</MSGNR>
+     <TEXT>ZLSO_LOG &amp;1 - BizX User Transfer (&amp;2)</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZLSO_LOG</ARBGB>
+     <MSGNR>030</MSGNR>
+     <TEXT>ZLSO_LOG &amp;1 - LMS Access Token (&amp;2)</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZLSO_LOG</ARBGB>
+     <MSGNR>031</MSGNR>
+     <TEXT>ZLSO_LOG &amp;1 - LMS User Transfer</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZLSO_LOG</ARBGB>
+     <MSGNR>032</MSGNR>
+     <TEXT>ZLSO_LOG &amp;1 - LMS Get User</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZLSO_LOG</ARBGB>
+     <MSGNR>040</MSGNR>
+     <TEXT>ZLSO_LOG &amp;1 - LMS Admin Access Token (&amp;2)</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZLSO_LOG</ARBGB>
+     <MSGNR>041</MSGNR>
+     <TEXT>ZLSO_LOG &amp;1 - LMS Admin (&amp;2)</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZLSO_LOG</ARBGB>
+     <MSGNR>042</MSGNR>
+     <TEXT>ZLSO_LOG &amp;1 - LMS Admin (get roles) &amp;2</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZLSO_LOG</ARBGB>
+     <MSGNR>050</MSGNR>
+     <TEXT>ZLSO_LOG JAM Access Token (&amp;1)</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZLSO_LOG</ARBGB>
+     <MSGNR>051</MSGNR>
+     <TEXT>ZLSO_LOG JAM Get Member ID for &amp;1</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZLSO_LOG</ARBGB>
+     <MSGNR>052</MSGNR>
+     <TEXT>ZLSO_LOG JAM Get Groups for &amp;1</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZLSO_LOG</ARBGB>
+     <MSGNR>053</MSGNR>
+     <TEXT>ZLSO_LOG JAM Invite &amp;1 to group &amp;2</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZLSO_LOG</ARBGB>
+     <MSGNR>054</MSGNR>
+     <TEXT>ZLSO_LOG JAM Remove &amp;1 from group &amp;2</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZLSO_LOG</ARBGB>
+     <MSGNR>055</MSGNR>
+     <TEXT>ZLSO_LOG JAM Get Notifications for &amp;1</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZLSO_LOG</ARBGB>
+     <MSGNR>056</MSGNR>
+     <TEXT>ZLSO_LOG JAM Accept notification &amp;1 for user &amp;2</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZLSO_LOG</ARBGB>
+     <MSGNR>057</MSGNR>
+     <TEXT>ZLSO_LOG JAM Accept terms of Service</TEXT>
+    </T100>
+    <T100>
+     <SPRSL>E</SPRSL>
+     <ARBGB>ZLSO_LOG</ARBGB>
+     <MSGNR>999</MSGNR>
+     <TEXT>Unit Test Message :) &amp;1 &amp;2 &amp;3 &amp;4</TEXT>
+    </T100>
+   </T100>
+  </asx:values>
+ </asx:abap>
+</abapGit>

@@ -1,0 +1,2 @@
+Rest Client to does not allow accessing the internal HTTP Client details.
+Therefore get_http_client( ) method was introduced.

@@ -1,0 +1,38 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<abapGit version="v1.0.0" serializer="LCL_OBJECT_ENHO" serializer_version="v1.0.0">
+ <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
+  <asx:values>
+   <TOOL>CLASENH</TOOL>
+   <SHORTTEXT>Rest Client to return internal HTTP Client</SHORTTEXT>
+   <CLASS>CL_REST_HTTP_CLIENT</CLASS>
+   <TAB_METHODS>
+    <ENHNEWMETH_DATA>
+     <METHKEY>
+      <CLSNAME>CL_REST_HTTP_CLIENT</CLSNAME>
+      <CMPNAME>GET_HTTP_CLIENT</CMPNAME>
+     </METHKEY>
+     <METH_HEADER>
+      <CLSNAME>CL_REST_HTTP_CLIENT</CLSNAME>
+      <CMPNAME>GET_HTTP_CLIENT</CMPNAME>
+      <DESCRIPT>Return underlying http client</DESCRIPT>
+      <EXPOSURE>2</EXPOSURE>
+      <STATE>1</STATE>
+      <EDITORDER>1</EDITORDER>
+     </METH_HEADER>
+     <METH_PARAM>
+      <ENHMETHPARAM>
+       <CLSNAME>CL_REST_HTTP_CLIENT</CLSNAME>
+       <CMPNAME>GET_HTTP_CLIENT</CMPNAME>
+       <SCONAME>HTTP_CLIENT</SCONAME>
+       <DESCRIPT>HTTP Client Abstraction</DESCRIPT>
+       <EDITORDER>1</EDITORDER>
+       <PARDECLTYP>3</PARDECLTYP>
+       <TYPTYPE>3</TYPTYPE>
+       <TYPE>IF_HTTP_CLIENT</TYPE>
+      </ENHMETHPARAM>
+     </METH_PARAM>
+    </ENHNEWMETH_DATA>
+   </TAB_METHODS>
+  </asx:values>
+ </asx:abap>
+</abapGit>
