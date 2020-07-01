@@ -36,7 +36,6 @@
      <FIELDNAME>ID</FIELDNAME>
      <KEYFLAG>X</KEYFLAG>
      <ENQMODE>E</ENQMODE>
-     <LOWERCASE>X</LOWERCASE>
     </DD27P>
    </DD27P_TABLE>
   </asx:values>

@@ -67,7 +67,7 @@ class zcl_lso_log_message_builder definition
       returning value(instance) type ref to zcl_lso_log_message_builder.
 
     methods set_trace
-      importing trace           type ref to zcl_lso_log_trace
+      importing trace           type ref to zif_lso_log_trace
       returning value(instance) type ref to zcl_lso_log_message_builder.
 
     methods set_stripped_date
@@ -80,7 +80,7 @@ class zcl_lso_log_message_builder definition
 
   protected section.
   private section.
-    data trace type ref to zcl_lso_log_trace .
+    data trace type ref to zif_lso_log_trace .
     data log_id type zlso_log_message-log_id .
     data log_seqnr type zlso_log_message-log_seqnr .
     data msgid type zlso_log_message-msgid .

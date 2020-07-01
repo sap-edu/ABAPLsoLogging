@@ -12,14 +12,6 @@
     <UNICODE>X</UNICODE>
     <WITH_UNIT_TESTS>X</WITH_UNIT_TESTS>
    </VSEOCLASS>
-   <DESCRIPTIONS>
-    <SEOCOMPOTX>
-     <CLSNAME>ZCL_LSO_LOG_FACTORY</CLSNAME>
-     <CMPNAME>COLLECTION_2_IDS</CMPNAME>
-     <LANGU>E</LANGU>
-     <DESCRIPT>Convert collection of logs into range of ids</DESCRIPT>
-    </SEOCOMPOTX>
-   </DESCRIPTIONS>
   </asx:values>
  </asx:abap>
 </abapGit>

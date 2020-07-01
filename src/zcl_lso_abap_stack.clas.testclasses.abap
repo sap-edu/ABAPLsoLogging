@@ -15,13 +15,6 @@ class ltc_lso_abap_stack definition final for testing
     methods get for testing.
     methods before_pattern for testing raising cx_static_check.
     methods before_ref for testing raising cx_static_check.
-
-    methods get_expected_stack_depth
-      importing
-        release      type sy-saprl default sy-saprl
-      returning
-        value(depth) type   tpda_stack_level.
-
 endclass.
 
 
@@ -50,13 +43,12 @@ class ltc_lso_abap_stack implementation.
   endmethod.
 
   method before_pattern.
-
-    data(exp) = value cl_abap_get_call_stack=>formatted_entry( stack_depth = 0
-                                                               kind        = 'METHOD'
-                                                               progname    = 'ZCL_LSO_ABAP_STACK============CP'
-                                                               includename = 'ZCL_LSO_ABAP_STACK============CCAU'
-                                                               line        = '61'
-                                                               event       = 'LTC_LSO_ABAP_STACK=>BEFORE_PATTERN' ).
+    data(exp) = value zif_lso_abap_stack=>ts_entry( stack_depth = 0
+                                                    kind        = 'METHOD'
+                                                    progname    = 'ZCL_LSO_ABAP_STACK============CP'
+                                                    includename = 'ZCL_LSO_ABAP_STACK============CCAU'
+                                                    line        = '61'
+                                                    event       = 'LTC_LSO_ABAP_STACK=>BEFORE_PATTERN' ).
 
     data(act) = me->cut->zif_lso_abap_stack~before_pattern( 'LTC_LSO_ABAP_STACK*' ).
     act-stack_depth = exp-stack_depth = 0. " Ignore stack depth, it differs by system and call context of unit test
@@ -68,13 +60,12 @@ class ltc_lso_abap_stack implementation.
 
 
   method before_ref.
-
-    data(exp) = value cl_abap_get_call_stack=>formatted_entry( stack_depth = 0
-                                                               kind        = 'METHOD'
-                                                               progname    = 'ZCL_LSO_ABAP_STACK============CP'
-                                                               includename = 'ZCL_LSO_ABAP_STACK============CCAU'
-                                                               line        = '79'
-                                                               event       = 'LTC_LSO_ABAP_STACK=>BEFORE_REF' ).
+    data(exp) = value zif_lso_abap_stack=>ts_entry( stack_depth = 0
+                                                    kind        = 'METHOD'
+                                                    progname    = 'ZCL_LSO_ABAP_STACK============CP'
+                                                    includename = 'ZCL_LSO_ABAP_STACK============CCAU'
+                                                    line        = '79'
+                                                    event       = 'LTC_LSO_ABAP_STACK=>BEFORE_REF' ).
 
     data(act) = me->cut->zif_lso_abap_stack~before_ref( me ).
     act-stack_depth = exp-stack_depth = 0. " Ignore stack depth, it differs by system and call context of unit test
@@ -82,14 +73,6 @@ class ltc_lso_abap_stack implementation.
     cl_abap_unit_assert=>assert_equals( act = act
                                         exp = exp
                                         msg = |If the expected line differs, you propbably adjusted this unit test...|  ).
-  endmethod.
-
-  method get_expected_stack_depth.
-
-    " Unit test calling is triggered by a different program hierarchy starting 752.
-
-    depth = cond #( when sy-saprl < 752 then 10 else 13 ).
-
   endmethod.
 
 endclass.

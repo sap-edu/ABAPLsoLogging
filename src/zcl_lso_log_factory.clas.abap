@@ -14,17 +14,10 @@ class zcl_lso_log_factory definition
     aliases exists for zif_lso_log_factory~exists.
     aliases delete for zif_lso_log_factory~delete.
     aliases delete_collection for zif_lso_log_factory~delete_collection.
+    aliases logs2ids for zif_lso_log_factory~logs2ids.
 
     class-methods instance
       returning value(factory) type ref to zif_lso_log_factory.
-
-    "! <p class="shorttext synchronized" lang="en">Convert collection of logs into range of ids</p>
-    "!
-    "! @parameter logs | <p class="shorttext synchronized" lang="en"></p>
-    "! @parameter ids | <p class="shorttext synchronized" lang="en"></p>
-    methods collection_2_ids
-      importing logs       type ref to cl_object_collection
-      returning value(ids) type zif_lso_log_factory=>tt_log_id.
 
   protected section.
   private section.
@@ -75,15 +68,13 @@ class zcl_lso_log_factory definition
     types tt_hierarchy type sorted table of ts_hierarchy with unique key primary_key components id seqnr ref_id
       with non-unique sorted key ref components ref_id.
 
-    types tt_log_objects type sorted table of zlso_s_log_object with unique key primary_key components id seqnr.
-
     class-data self type ref to zif_lso_log_factory.
 
     data params type ts_params.
     data with_ref_logs type abap_bool.
     data hierarchy type tt_hierarchy.
-    data log_objects type tt_log_objects.
-    data hierarchy_log_objects type tt_log_objects.
+    data logs type zlso_tt_logs.
+    data hierarchy_logs type zlso_tt_logs.
     data last_messages type zif_lso_log_factory=>tt_last_messages.
 
     methods validate_find_params
@@ -123,7 +114,7 @@ class zcl_lso_log_factory definition
 
     methods collect_found_traces
       importing data           type tt_data
-      returning value(objects) type ref to zcl_lso_object_map.
+      returning value(objects) type zlso_tt_log_traces.
 
     methods build_hierarchy
       importing data type tt_data.
@@ -133,10 +124,10 @@ class zcl_lso_log_factory definition
       returning value(log)    type ref to zcl_lso_log.
 
     methods create_found
-      returning value(logs) type zlso_tt_log_objects.
+      returning value(logs) type zlso_tt_logs.
 
     methods process_by_hierarchy_up
-      importing log_object type ref to zlso_s_log_object.
+      importing log type ref to zlso_s_log.
 
     methods adjust_latest_message_with_ref
       importing last_message type ref to zif_lso_log_factory=>ts_last_message
@@ -163,37 +154,18 @@ class zcl_lso_log_factory implementation.
   endmethod.
 
 
-  method collection_2_ids.
-    ids = value #( ).
-
-    data(iterator) = logs->get_iterator( ).
-
-    while iterator->has_next( ).
-      data(log) = cast zcl_lso_log( iterator->get_next( ) ).
-
-      insert value #( sign   = zif_lso_log=>c_sign-include
-                      option = zif_lso_log=>c_option-equal
-                      low    = log->get_id( ) )
-        into table ids.
-    endwhile.
-  endmethod.
-
-
   method zif_lso_log_factory~create_from_handler.
     data(timestamp) = value timestampl( ).
     get time stamp field timestamp.
 
     data(log) = new zcl_lso_log_builder( )->set_timestamp( timestamp
-                                         )->set_program( sy-cprog
-                                         )->set_tcode( sy-tcode
+                                         " )->set_program( sy-cprog ##TODO
+                                         " )->set_tcode( sy-tcode ##TODO
                                          )->set_changed_by( sy-uname
                                          )->add_messages( log_handler->zif_lso_log_abstract~get_messages( )
                                          )->build( ).
 
-    logs = value zlso_tt_log_objects( ( id       = log->zif_lso_log~get_id( )
-                                        date     = log->zif_lso_log~get_date( )
-                                        time     = log->zif_lso_log~get_time( )
-                                        instance = log ) ).
+    logs = value #( ( log->get_object( ) ) ).
   endmethod.
 
 
@@ -209,9 +181,9 @@ class zcl_lso_log_factory implementation.
 
     select single @abap_true
       from zlso_log
-      into @result
       where id = @iv_id
-        and (where).
+        and (where)
+       into @result.
   endmethod.
 
 
@@ -220,8 +192,8 @@ class zcl_lso_log_factory implementation.
       " Select logs that will be deleted taking into account possible ids exclusions.
       select id
         from zlso_log
-        into table @data(ids)
-       where id in @log_ids.
+       where id in @log_ids
+        into table @data(ids).
     endif.
 
     loop at ids assigning field-symbol(<id>) where id is not initial.
@@ -231,11 +203,9 @@ class zcl_lso_log_factory implementation.
 
 
   method zif_lso_log_factory~delete_collection.
-    data(iterator) = logs->get_iterator( ).
-
-    while iterator->has_next( ).
-      cast zcl_lso_log( iterator->get_next( ) )->zif_lso_log~delete( ).
-    endwhile.
+    loop at logs using key object_key reference into data(log).
+      log->instance->delete( ).
+    endloop.
   endmethod.
 
 
@@ -259,7 +229,7 @@ class zcl_lso_log_factory implementation.
     me->last_messages = value #( ).
 
     " EDU-6694 - Split logs ids against potential OpenSQL short dump (Runtime Error DBSQL_STMNT_TOO_LARGE, Exception CX_SY_OPEN_SQL_DB).
-    loop at new zcl_lso_log_range( )->split_table_for_opensql_in( params-ids ) into data(logs_ids_split).
+    loop at new zcl_lso_range( )->split( params-ids ) into data(logs_ids_split).
       assign logs_ids_split->* to <table>.
 
       select log~id as log_id,
@@ -269,14 +239,14 @@ class zcl_lso_log_factory implementation.
         left outer join zlso_log_message as msg
           on msg~log_id    = log~id
          and msg~log_seqnr = log~seqnr
-       appending corresponding fields of table @me->last_messages
        where log~id    in @<table>
          and log~seqnr in (
               select max( seqnr )
                 from zlso_log
                where id = log~id
           )
-       group by log~id, log~seqnr.
+       group by log~id, log~seqnr
+       appending corresponding fields of table @me->last_messages.
     endloop.
 
     loop at me->last_messages assigning field-symbol(<last_message>).
@@ -299,12 +269,9 @@ class zcl_lso_log_factory implementation.
       if last_message->msg_timestamp is not initial.
         try.
             " Convert UTC time stamp into date/time.
-            zcl_lso_log_utils=>utc_tstmp_2_datetime(
-              exporting
-                iv_tstmp = last_message->msg_timestamp
-              importing
-                ev_date  = last_message->msg_date
-                ev_time  = last_message->msg_time ).
+            zcl_lso_log_utils=>utc_tstmp_2_datetime( exporting iv_tstmp = last_message->msg_timestamp
+                                                     importing ev_date  = last_message->msg_date
+                                                               ev_time  = last_message->msg_time ).
           catch cx_parameter_invalid_type
                 cx_parameter_invalid_range.
             clear last_message->msg_date.
@@ -383,20 +350,18 @@ class zcl_lso_log_factory implementation.
     data(traces) = me->collect_found_traces( data ).
 
     " Initialize log objects, will be filled with found data.
-    me->log_objects = value zlso_tt_log_objects( ).
+    me->logs = value zlso_tt_logs( ).
 
     " Process found logs/messages.
     loop at data assigning field-symbol(<data>).
       " Check if there is already log object with given key.
-      data(log_object) = ref #( me->log_objects[ id    = <data>-id_log
-                                                 seqnr = <data>-seqnr_log ] optional ).
+      data(log) = ref #( me->logs[ key object_key components id    = <data>-id_log
+                                                             seqnr = <data>-seqnr_log ] optional ).
 
-      if log_object is initial.
+      if log is initial.
         " No log object, create a new one.
         insert value #( id       = <data>-id_log
                         seqnr    = <data>-seqnr_log
-                        date     = <data>-log_date_log
-                        time     = <data>-log_time_log
                         instance = me->create( value #( id            = <data>-id_log
                                                         seqnr         = <data>-seqnr_log
                                                         timestamp     = <data>-timestamp_log
@@ -408,10 +373,10 @@ class zcl_lso_log_factory implementation.
                                                         tcode         = <data>-tcode_log
                                                         prog          = <data>-prog_log
                                                         stripped_date = <data>-stripped_date_log ) ) )
-          into table me->log_objects reference into log_object.
+          into table me->logs reference into log.
       endif.
 
-      if log_object->instance is bound.
+      if log->instance is bound.
         " Instantiate message object with 'Builder' pattern.
         data(message_builder) = new zcl_lso_log_message_builder( )->set_log_id( <data>-id_log
                                                                  )->set_log_seqnr( <data>-seqnr_log
@@ -431,12 +396,16 @@ class zcl_lso_log_factory implementation.
                                                   abap_event       = <data>-abap_event_msg ) ).
 
         " Set the trace object to message builder if found.
-        if <data>-id_trace is not initial and traces->contains_key( <data>-id_trace ).
-          message_builder->set_trace( cast zcl_lso_log_trace( traces->get( <data>-id_trace ) ) ).
+        if <data>-id_trace is not initial.
+          data(trace) = ref #( traces[ key object_key components id = <data>-id_trace ] optional ).
+
+          if trace is bound.
+            message_builder->set_trace( trace->instance ).
+          endif.
         endif.
 
         " Add message to the log.
-        log_object->instance->add( message_builder->build( ) ).
+        log->instance->add_message( message_builder->build( ) ).
       endif.
     endloop.
 
@@ -451,75 +420,61 @@ class zcl_lso_log_factory implementation.
 
 
   method create_found.
-    me->hierarchy_log_objects = value #( ).
+    me->hierarchy_logs = value #( ).
 
     " Create final result taking into account the whole hierarchy relations (main->reference logs).
-    loop at me->log_objects reference into data(log_object).
-      me->process_by_hierarchy_up( log_object ).
+    loop at me->logs reference into data(log).
+      me->process_by_hierarchy_up( log ).
     endloop.
 
-    logs[] = me->hierarchy_log_objects[].
+    logs[] = me->hierarchy_logs[].
   endmethod.
 
 
   method process_by_hierarchy_up.
     if me->hierarchy[] is not initial.
       " Check if this log exists in the hierarchy as a reference one.
-      data(hierarchy_up) = ref #( me->hierarchy[ key ref components ref_id = log_object->id ] optional ).
+      data(hierarchy_up) = ref #( me->hierarchy[ key ref components ref_id = log->id ] optional ).
     endif.
 
     if hierarchy_up is bound.
       " Try to find object in already collected ones.
-      data(log_object_up) = ref #( me->log_objects[ id    = hierarchy_up->id
-                                                    seqnr = hierarchy_up->seqnr ] optional ).
+      data(log_up) = ref #( me->logs[ key object_key components id    = hierarchy_up->id
+                                                                seqnr = hierarchy_up->seqnr ] optional ).
 
-      if log_object_up is not bound.
-        data(log_up) = me->create( corresponding #( hierarchy_up->* ) ).
-
-        insert value #( id       = log_up->zif_lso_log~get_id( )
-                        seqnr    = log_up->zif_lso_log~get_seqnr( )
-                        date     = log_up->zif_lso_log~get_date( )
-                        time     = log_up->zif_lso_log~get_time( )
-                        instance = log_up )
-          into table me->log_objects reference into log_object_up.
+      if log_up is not bound.
+        insert me->create( corresponding #( hierarchy_up->* ) )->get_object( )
+          into table me->logs reference into log_up.
       endif.
 
       " Has parent object got a reference log already?
-      if not log_object_up->instance->zif_lso_log~has_ref_log( log_object->instance ).
+      if not log_up->instance->has_ref_log( log->instance ).
         " Nope, set current log as a reference one.
-        log_object_up->instance->zif_lso_log~add_ref_log( log_object->instance ).
+        log_up->instance->add_ref_log( log->instance ).
 
         " Go up in the hierarchy.
-        me->process_by_hierarchy_up( log_object_up ).
+        me->process_by_hierarchy_up( log_up ).
       endif.
     else.
-      if not line_exists( me->hierarchy_log_objects[ id    = log_object->id
-                                                     seqnr = log_object->seqnr ] ).
+      if not line_exists( me->hierarchy_logs[ key object_key components id    = log->id
+                                                                        seqnr = log->seqnr ] ).
         " There is no upper log, add it to final table.
-        insert value #( id       = log_object->id
-                        seqnr    = log_object->seqnr
-                        date     = log_object->instance->zif_lso_log~get_date( )
-                        time     = log_object->instance->zif_lso_log~get_time( )
-                        instance = log_object->instance )
-          into table me->hierarchy_log_objects.
+        insert log->* into table me->hierarchy_logs.
       endif.
     endif.
   endmethod.
 
 
   method collect_found_traces.
-    objects = new #( ).
-
     data(trace_ids) = value zcl_lso_log_trace_factory=>tt_r_id( for wa in data where ( id_trace is not initial )
                                                                                      ( sign   = zif_lso_log=>c_sign-include
                                                                                        option = zif_lso_log=>c_option-equal
                                                                                        low    = wa-id_trace ) ).
-
     if trace_ids[] is not initial.
       sort trace_ids.
       delete adjacent duplicates from trace_ids.
 
-      objects = zcl_lso_log_trace_factory=>create_map_by_ids( trace_ids ).
+      objects = zcl_lso_log_trace_factory=>create_by_ids( trace_ids ).
     endif.
   endmethod.
 
@@ -639,7 +594,7 @@ class zcl_lso_log_factory implementation.
     field-symbols <table> type standard table.
 
     " Split IDs range table into smaller chunks to have it safely used in OpenSQL update statement.
-    loop at new zcl_lso_log_range( )->split_table_for_opensql_in( ids ) into data(ids_split).
+    loop at new zcl_lso_range( )->split( ids ) into data(ids_split).
       assign ids_split->* to <table>.
 
       " Check if there are reference logs for provided ones.
@@ -648,10 +603,10 @@ class zcl_lso_log_factory implementation.
                       tcode, prog, stripped_date,
                       @level as level
         from zlso_log
-        appending table @data(hierarchy_down)
        where id     in @<table>
          and ref_id ne ''
-         order by primary key.
+         order by primary key
+         appending table @data(hierarchy_down).
     endloop.
 
     if hierarchy_down[] is initial.
@@ -705,7 +660,7 @@ class zcl_lso_log_factory implementation.
     field-symbols <table> type standard table.
 
     " Split IDs range table into smaller chunks to have it safely used in OpenSQL update statement.
-    loop at new zcl_lso_log_range( )->split_table_for_opensql_in( ids ) into data(ids_split).
+    loop at new zcl_lso_range( )->split( ids ) into data(ids_split).
       assign ids_split->* to <table>.
 
       " Check if there are reference logs for provided ones.
@@ -714,9 +669,9 @@ class zcl_lso_log_factory implementation.
                       tcode, prog, stripped_date,
                       @level as level
         from zlso_log
-        appending table @data(hierarchy_up)
        where ref_id in @<table>
-        order by primary key.
+        order by primary key
+        appending table @data(hierarchy_up).
     endloop.
 
     if hierarchy_up[] is initial.
@@ -851,7 +806,7 @@ class zcl_lso_log_factory implementation.
   method find_by_parameters.
     if params->ids[] is not initial.
       " Split IDs range table into smaller chunks to have it safely used in OpenSQL IN statement.
-      loop at new zcl_lso_range( )->split_table_for_opensql_in( params->ids ) into data(ids_split).
+      loop at new zcl_lso_range( )->split( params->ids ) into data(ids_split).
         assign ids_split->* to field-symbol(<ids_split>).
 
         insert lines of me->find_db( params    = params
@@ -879,7 +834,8 @@ class zcl_lso_log_factory implementation.
                     message~abap_program as abap_program_msg, message~abap_include as abap_include_msg,
                     message~abap_source_line as abap_source_line_msg, message~abap_event as abap_event_msg,
                     message~stripped_date as stripped_date_msg,
-                    t100~text as t100_text,
+##TODO
+*                    t100~text as t100_text,
                     trace~id as id_trace, trace~http_status as http_status_trace,
                     trace~request_url as request_url_trace, trace~request_method as request_method_trace,
                     trace~stripped_date as stripped_date_trace
@@ -887,10 +843,11 @@ class zcl_lso_log_factory implementation.
       inner join zlso_log_message as message
         on message~log_id    = log~id
        and message~log_seqnr = log~seqnr
-      left outer join t100                             "#EC CI_BUFFJOIN
-        on t100~sprsl = @zif_lso_log=>c_langu_english
-       and t100~arbgb = message~msgid
-       and t100~msgnr = message~msgno
+##TODO
+*      left outer join t100                             "#EC CI_BUFFJOIN
+*        on t100~sprsl = @zif_lso_log=>c_langu_english
+*       and t100~arbgb = message~msgid
+*       and t100~msgnr = message~msgno
       left outer join zlso_log_trace as trace
         on trace~id = message~trace_id
       " request payload
@@ -909,7 +866,6 @@ class zcl_lso_log_factory implementation.
       left outer join zlso_log_headers as response_headers
         on response_headers~trace_id = trace~id
        and response_headers~type     = @zif_lso_log_payload=>c_type-response
-      into corresponding fields of table @data
       where log~id                   in @ids_split
         and log~seqnr                in @params->seqnrs
         and log~timestamp            in @params->log_timestamps
@@ -925,7 +881,9 @@ class zcl_lso_log_factory implementation.
            or message~msgv2          in @params->message_texts
            or message~msgv3          in @params->message_texts
            or message~msgv4          in @params->message_texts
-           or t100~text              in @params->message_texts ) "#EC CI_CMPLX_WHERE
+##TODO
+*           or t100~text              in @params->message_texts
+                                                               ) "#EC CI_CMPLX_WHERE
         and trace~http_status        in @params->http_statuses
         and trace~request_url        in @params->request_urls
         and trace~request_method     in @params->request_methods
@@ -936,7 +894,8 @@ class zcl_lso_log_factory implementation.
         and response_headers~name    in @params->response_header_names
         and response_headers~value   in @params->response_header_values
       order by log~id ascending, log~seqnr ascending, log~timestamp ascending,
-               message~timestamp ascending.
+               message~timestamp ascending
+      into corresponding fields of table @data.
   endmethod.
 
 
@@ -974,6 +933,13 @@ class zcl_lso_log_factory implementation.
         log->time = time.
       endif.
     endif.
+  endmethod.
+
+
+  method zif_lso_log_factory~logs2ids.
+    ids = value #( for l in logs ( sign   = zif_lso_range=>c_sign-include
+                                   option = zif_lso_range=>c_option-equal
+                                   low    = l-id ) ).
   endmethod.
 
 endclass.

@@ -1,4 +1,4 @@
-class zcl_lso_log_unit definition for testing
+class zcu_lso_log definition for testing
   public
   create public
   duration short
@@ -16,47 +16,35 @@ class zcl_lso_log_unit definition for testing
     constants http_status type zlso_log_trace-http_status value '200'.
     constants end of c_trace_data.
 
-    methods start_time_measure .
-
-    methods finish_time_measure
-      returning
-        value(rv_execution_time) type decfloat34 .
-
     methods get_request_headers
-      returning
-        value(rt_headers) type tihttpnvp .
+      returning value(rt_headers) type if_web_http_request=>name_value_pairs .
 
     methods get_response_headers
-      returning
-        value(rt_headers) type tihttpnvp .
+      returning value(rt_headers) type if_web_http_request=>name_value_pairs .
 
     methods get_html_payload
-      returning
-        value(rv_payload) type string .
+      returning value(rv_payload) type string .
 
     methods get_saml_payload
-      returning
-        value(payload) type string .
+      returning value(payload) type string .
 
     methods get_json_request_payload
-      returning
-        value(rv_payload) type string .
+      returning value(rv_payload) type string .
 
     methods get_json_response_payload
-      returning
-        value(rv_payload) type string .
+      returning value(rv_payload) type string .
 
     methods get_json_sensitive_payload
-      returning
-        value(rv_payload) type string .
+      returning value(rv_payload) type string .
 
     methods get_sensitive_payload
-      returning
-        value(rv_payload) type string .
+      returning value(rv_payload) type string .
 
     methods get_xml_payload
-      returning
-        value(rv_payload) type string .
+      returning value(rv_payload) type string .
+
+    methods get_text_payload
+      returning value(rv_payload) type string .
 
     methods create_trace
       importing id               type zlso_log_trace-id optional
@@ -71,60 +59,52 @@ class zcl_lso_log_unit definition for testing
       returning value(trace)     type ref to zcl_lso_log_trace.
 
     "! Add log to the buffer for further tear down.
-    "! @parameter log |
     methods add_log_to_teardown
-      importing log type ref to zcl_lso_log.
+      importing log type ref to zif_lso_log.
 
     "! Add log messages to the buffer for further tear down.
-    "! @parameter messages |
     methods add_messages_to_teardown
-      importing messages type ref to cl_object_collection.
+      importing messages type zlso_tt_log_messages.
 
     "! Add log message to the buffer for further tear down.
-    "! @parameter message |
     methods add_message_to_teardown
       importing message type ref to zcl_lso_log_message.
 
     "! Add log traces to the buffer for further tear down.
-    "! @parameter traces |
     methods add_traces_to_teardown
-      importing traces type ref to cl_object_collection.
+      importing traces type zlso_tt_log_traces.
 
     "! Add log trace to the buffer for further tear down.
-    "! @parameter trace |
     methods add_trace_to_teardown
       importing trace type ref to zcl_lso_log_trace.
 
     "! Add log payloads to the buffer for further tear down.
-    "! @parameter payloads |
     methods add_payloads_to_teardown
-      importing payloads type ref to cl_object_collection.
+      importing payloads type zlso_tt_log_payloads.
 
     "! Add log payload to the buffer for further tear down.
-    "! @parameter payload |
     methods add_payload_to_teardown
       importing payload type ref to zcl_lso_log_payload.
 
     "! Delete log data from DB
-    "! @parameter log |
     methods delete_log
-      importing log type ref to zcl_lso_log.
+      importing log type ref to zif_lso_log.
 
     "! Delete log messsage from DB
     "! @parameter message | <p class="shorttext synchronized" lang="en"></p>
     methods delete_message
-      importing message type ref to zcl_lso_log_message.
+      importing message type ref to zif_lso_log_message.
 
     "! <p class="shorttext synchronized" lang="en">Delete log trace from DB</p>
     "! @parameter trace | <p class="shorttext synchronized" lang="en"></p>
     methods delete_trace
-      importing trace type ref to zcl_lso_log_trace.
+      importing trace type ref to zif_lso_log_trace.
 
     "! <p class="shorttext synchronized" lang="en">Delete payload from DB</p>
     "!
     "! @parameter payload | <p class="shorttext synchronized" lang="en"></p>
     methods delete_payload
-      importing payload type ref to zcl_lso_log_payload.
+      importing payload type ref to zif_lso_log_payload.
 
     "! <p class="shorttext synchronized" lang="en">Assert log object</p>
     "!
@@ -137,7 +117,7 @@ class zcl_lso_log_unit definition for testing
     "! @parameter exp_has_ref_logs | <p class="shorttext synchronized" lang="en"></p>
     "! @parameter exp_number_of_ref_logs | <p class="shorttext synchronized" lang="en"></p>
     methods assert_log
-      importing log                        type ref to zcl_lso_log
+      importing log                        type ref to zif_lso_log
                 exp_id                     type zlso_log-id optional
                 exp_seqnr                  type zlso_log-seqnr optional
                 exp_has_messages           type abap_bool optional
@@ -159,7 +139,7 @@ class zcl_lso_log_unit definition for testing
     "! @parameter exp_abap_include | <p class="shorttext synchronized" lang="en"></p>
     "! @parameter exp_abap_event | <p class="shorttext synchronized" lang="en"></p>
     methods assert_message
-      importing message          type ref to zcl_lso_log_message
+      importing message          type ref to zif_lso_log_message
                 exp_log_id       type zlso_log_message-log_id optional
                 exp_log_seqnr    type zlso_log_message-log_seqnr optional
                 exp_msgty        type zlso_log_message-msgty optional
@@ -184,7 +164,7 @@ class zcl_lso_log_unit definition for testing
     "! @parameter exp_req_payload_cs_pattern | <p class="shorttext synchronized" lang="en">Request payload contains pattern</p>
     "! @parameter exp_resp_payload_cs_pattern | <p class="shorttext synchronized" lang="en">Response payload contains pattern</p>
     methods assert_trace
-      importing trace                       type ref to zcl_lso_log_trace
+      importing trace                       type ref to zif_lso_log_trace
                 exp_http_status             type zlso_log_trace-http_status optional
                 exp_request_method          type zlso_log_trace-request_method optional
                 exp_has_payload             type abap_bool optional
@@ -195,40 +175,35 @@ class zcl_lso_log_unit definition for testing
                 exp_has_headers             type abap_bool optional
                 exp_has_request_headers     type abap_bool optional
                 exp_has_response_headers    type abap_bool optional
-                exp_request_header          type ihttpnvp optional
-                exp_response_header         type ihttpnvp optional.
+                exp_request_header          type tihttpnvp optional
+                exp_response_header         type tihttpnvp optional.
 
 
   private section.
-    data mv_t1 type i .
-    data mv_t2 type i .
-    data mo_abap_runtime type ref to if_abap_runtime .
-    data logs type ref to cl_object_collection.
-    data messages type ref to cl_object_collection.
-    data traces type ref to cl_object_collection.
-    data payloads type ref to cl_object_collection.
-    data deleted_objects type zif_lso_log=>tt_objects.
+    data logs type zlso_tt_logs.
+    data messages type zlso_tt_log_messages.
+    data traces type zlso_tt_log_traces.
+    data payloads type zlso_tt_log_payloads.
+    data deleted_objects type zlso_tt_logs.
 
     methods teardown.
 endclass.
 
 
-class zcl_lso_log_unit implementation.
+class zcu_lso_log implementation.
 
   method constructor.
-    me->mo_abap_runtime = cl_abap_runtime=>create_hr_timer( ).
-
     " Logs created for the unit tests purpose.
-    me->logs = new #( ).
-
+    me->logs = value #( ).
+*
     " Messages created for the unit test purpose.
-    me->messages = new #( ).
+    me->messages = value #( ).
 
     " Traces created for the unit test purpose.
-    me->traces = new #( ).
+    me->traces = value #( ).
 
     " Payloads created for the unit test purpose.
-    me->payloads = new #( ).
+    me->payloads = value #( ).
 
     " Deleted log object within test runtime.
     me->deleted_objects = value #( ).
@@ -237,54 +212,25 @@ class zcl_lso_log_unit implementation.
 
   method teardown.
     " Logs...
-    if not me->logs->is_empty( ).
-      data(iterator) = me->logs->get_iterator( ).
-
-      while iterator->has_next( ).
-        " Delete test data
-        me->delete_log( cast zcl_lso_log( iterator->get_next( ) ) ).
-      endwhile.
-    endif.
+    loop at me->logs using key object_key reference into data(log).
+      " Delete test data
+      me->delete_log( log->instance ).
+    endloop.
 
     " Messages...
-    if not me->messages->is_empty( ).
-      data(messages_iterator) = me->messages->get_iterator( ).
-
-      while messages_iterator->has_next( ).
-        me->delete_message( cast zcl_lso_log_message( messages_iterator->get_next( ) ) ) .
-      endwhile.
-    endif.
+    loop at me->messages using key object_key reference into data(message_object).
+      me->delete_message( message_object->instance ) .
+    endloop.
 
     " Traces...
-    if not me->traces->is_empty( ).
-      data(traces_iterator) = me->traces->get_iterator( ).
-
-      while traces_iterator->has_next( ).
-        me->delete_trace( cast zcl_lso_log_trace( traces_iterator->get_next( ) ) ) .
-      endwhile.
-    endif.
+    loop at me->traces using key object_key reference into data(trace_object).
+      me->delete_trace( trace_object->instance ) .
+    endloop.
 
     " Payloads...
-    if not me->payloads->is_empty( ).
-      data(payloads_iterator) = me->payloads->get_iterator( ).
-
-      while payloads_iterator->has_next( ).
-        me->delete_payload( cast zcl_lso_log_payload( payloads_iterator->get_next( ) ) ) .
-      endwhile.
-    endif.
-  endmethod.
-
-
-  method start_time_measure.
-    me->mv_t1 = me->mo_abap_runtime->get_runtime( ).
-  endmethod.
-
-
-  method finish_time_measure.
-    me->mv_t2 = me->mo_abap_runtime->get_runtime( ).
-
-*   Return execution time in seconds.
-    rv_execution_time = ( me->mv_t2 - me->mv_t1 ) / 1000000.
+    loop at me->payloads using key object_key reference into data(payload_object).
+      me->delete_payload( payload_object->instance ) .
+    endloop.
   endmethod.
 
 
@@ -297,8 +243,10 @@ class zcl_lso_log_unit implementation.
           data(uuid) = cl_system_uuid=>if_system_uuid_static~create_uuid_c22( ).
           trace_id = |LTC_{ uuid+4(18) }|.
         catch cx_uuid_error.
-          wait up to 1 seconds.
-          retry.
+          data(timestamp) = value timestampl( ).
+          get time stamp field timestamp.
+
+          trace_id = |LTC_{ timestamp }|.
       endtry.
     endif.
 
@@ -315,83 +263,70 @@ class zcl_lso_log_unit implementation.
 
 
   method add_log_to_teardown.
-    me->logs->add( log ).
+    insert log->get_object( ) into table me->logs.
 
-    if log->zif_lso_log~has_ref_logs( ).
-      data(iterator) = log->zif_lso_log~get_ref_logs( )->get_iterator( ).
-
-      while iterator->has_next( ).
-        me->logs->add( cast zcl_lso_log( iterator->get_next( ) ) ).
-      endwhile.
+    if log->has_ref_logs( ).
+      loop at log->get_ref_logs( ) using key object_key reference into data(ref_log).
+        me->add_log_to_teardown( ref_log->instance ).
+      endloop.
     endif.
   endmethod.
 
 
   method add_messages_to_teardown.
-    data(iterator) = messages->get_iterator( ).
-
-    while iterator->has_next( ).
-      me->add_message_to_teardown( cast zcl_lso_log_message( iterator->get_next( ) ) ).
-    endwhile.
+    loop at messages using key object_key reference into data(object).
+      me->add_message_to_teardown( cast zcl_lso_log_message( object->instance ) ).
+    endloop.
   endmethod.
 
 
   method add_message_to_teardown.
-    me->messages->add( message ).
+    insert message->get_object( ) into table me->messages.
   endmethod.
 
 
   method add_traces_to_teardown.
-    data(iterator) = traces->get_iterator( ).
-
-    while iterator->has_next( ).
-      me->add_trace_to_teardown( cast zcl_lso_log_trace( iterator->get_next( ) ) ).
-    endwhile.
+    loop at traces using key object_key reference into data(object).
+      me->add_trace_to_teardown( cast zcl_lso_log_trace( object->instance ) ).
+    endloop.
   endmethod.
 
 
   method add_trace_to_teardown.
-    me->traces->add( trace ).
+    insert trace->get_object( ) into table me->traces.
   endmethod.
 
 
   method add_payloads_to_teardown.
-    data(iterator) = payloads->get_iterator( ).
-
-    while iterator->has_next( ).
-      me->add_payload_to_teardown( cast zcl_lso_log_payload( iterator->get_next( ) ) ).
-    endwhile.
+    loop at payloads using key object_key reference into data(object).
+      me->add_payload_to_teardown( cast zcl_lso_log_payload( object->instance ) ).
+    endloop.
   endmethod.
 
 
   method add_payload_to_teardown.
-    me->payloads->add( payload ).
+    insert payload->get_object( ) into table me->payloads.
   endmethod.
 
 
   method delete_log.
     " Cross-reference logs protection!
-    if line_exists( me->deleted_objects[ id    = log->zif_lso_log~get_id( )
-                                         seqnr = log->zif_lso_log~get_seqnr( ) ] ).
+    if line_exists( me->deleted_objects[ key object_key components id    = log->get_id( )
+                                                                   seqnr = log->get_seqnr( ) ] ).
       " Log has been already deleted.
       return.
     endif.
 
     " Mark log object as already deleted.
-    insert value #( id       = log->zif_lso_log~get_id( )
-                    seqnr    = log->zif_lso_log~get_seqnr( )
-                    instance = log )
-      into table me->deleted_objects.
+    insert log->get_object( ) into table me->deleted_objects.
 
-    if log->zif_lso_log~has_ref_logs( ).
-      data(iterator) = log->zif_lso_log~get_ref_logs( )->get_iterator( ).
-
-      while iterator->has_next( ).
-        me->delete_log( cast zcl_lso_log( iterator->get_next( ) ) ).
-      endwhile.
+    if log->has_ref_logs( ).
+      loop at log->get_ref_logs( ) using key object_key reference into data(ref_log).
+        me->delete_log( ref_log->instance ).
+      endloop.
     endif.
 
-    data(id) = log->zif_lso_log~get_id( ).
+    data(id) = log->get_id( ).
 
     if id is initial.
       return.
@@ -514,37 +449,37 @@ class zcl_lso_log_unit implementation.
 
     if exp_id is supplied.
       " Is log id correct?
-      cl_abap_unit_assert=>assert_equals( act = log->zif_lso_log~get_id( ) exp = exp_id ).
+      cl_abap_unit_assert=>assert_equals( act = log->get_id( ) exp = exp_id ).
     endif.
 
     if exp_seqnr is supplied.
       " Is sequence number as expected?
-      cl_abap_unit_assert=>assert_equals( act = log->zif_lso_log~get_seqnr( ) exp = exp_seqnr ).
+      cl_abap_unit_assert=>assert_equals( act = log->get_seqnr( ) exp = exp_seqnr ).
     endif.
 
     if exp_has_messages is supplied.
       " Has log got messages?
-      cl_abap_unit_assert=>assert_equals( act = log->zif_lso_log~has_messages( ) exp = exp_has_messages ).
+      cl_abap_unit_assert=>assert_equals( act = log->has_messages( ) exp = exp_has_messages ).
     endif.
 
     if exp_number_of_msg is supplied.
       " Is number of messages without reference log correct?
-      cl_abap_unit_assert=>assert_equals( act = log->zif_lso_log~get_messages( abap_false )->size( ) exp = exp_number_of_msg ).
+      cl_abap_unit_assert=>assert_equals( act = lines( log->get_messages( abap_false ) ) exp = exp_number_of_msg ).
     endif.
 
     if exp_number_of_msg_with_ref is supplied.
       " Is number of messages with reference log correct?
-      cl_abap_unit_assert=>assert_equals( act = log->zif_lso_log~get_messages( abap_true )->size( ) exp = exp_number_of_msg_with_ref ).
+      cl_abap_unit_assert=>assert_equals( act = lines( log->get_messages( abap_true ) ) exp = exp_number_of_msg_with_ref ).
     endif.
 
     if exp_has_ref_logs is supplied.
       " Has log got a reference one?
-      cl_abap_unit_assert=>assert_equals( act = log->zif_lso_log~has_ref_logs( ) exp = exp_has_ref_logs ).
+      cl_abap_unit_assert=>assert_equals( act = log->has_ref_logs( ) exp = exp_has_ref_logs ).
     endif.
 
     if exp_number_of_ref_logs is supplied.
       " Is number of reference logs correct?
-      cl_abap_unit_assert=>assert_equals( act = log->zif_lso_log~get_ref_logs( )->size( ) exp = exp_number_of_ref_logs ).
+      cl_abap_unit_assert=>assert_equals( act = lines( log->get_ref_logs( ) ) exp = exp_number_of_ref_logs ).
     endif.
   endmethod.
 
@@ -555,47 +490,47 @@ class zcl_lso_log_unit implementation.
 
     if exp_log_id is supplied.
       " Is log id as expected?
-      cl_abap_unit_assert=>assert_equals( act = message->zif_lso_log_message~get_log_id( ) exp = exp_log_id ).
+      cl_abap_unit_assert=>assert_equals( act = message->get_log_id( ) exp = exp_log_id ).
     endif.
 
     if exp_log_seqnr is supplied.
       " Is log sequence number as expected?
-      cl_abap_unit_assert=>assert_equals( act = message->zif_lso_log_message~get_log_seqnr( ) exp = exp_log_seqnr ).
+      cl_abap_unit_assert=>assert_equals( act = message->get_log_seqnr( ) exp = exp_log_seqnr ).
     endif.
 
     if exp_msgty is supplied.
       " Is message type as expected?
-      cl_abap_unit_assert=>assert_equals( act = message->zif_lso_log_message~get_type( ) exp = exp_msgty ).
+      cl_abap_unit_assert=>assert_equals( act = message->get_type( ) exp = exp_msgty ).
     endif.
 
     if exp_msgid is supplied.
       " Is message id as expected?
-      cl_abap_unit_assert=>assert_equals( act = message->zif_lso_log_message~get_class( ) exp = exp_msgid ).
+      cl_abap_unit_assert=>assert_equals( act = message->get_class( ) exp = exp_msgid ).
     endif.
 
     if exp_msgno is supplied.
       " Is message number as expected?
-      cl_abap_unit_assert=>assert_equals( act = message->zif_lso_log_message~get_number( ) exp = exp_msgno ).
+      cl_abap_unit_assert=>assert_equals( act = message->get_number( ) exp = exp_msgno ).
     endif.
 
     if exp_has_trace is supplied.
       " Has message got a trace object?
-      cl_abap_unit_assert=>assert_equals( act = message->zif_lso_log_message~has_trace( ) exp = exp_has_trace ).
+      cl_abap_unit_assert=>assert_equals( act = message->has_trace( ) exp = exp_has_trace ).
     endif.
 
     if exp_abap_program is supplied.
       " Has message got an ABAP stack program as expected?
-      cl_abap_unit_assert=>assert_char_cp( act = message->zif_lso_log_message~get_abap_stack( )-abap_program exp = exp_abap_program ).
+      cl_abap_unit_assert=>assert_char_cp( act = message->get_abap_stack( )-abap_program exp = exp_abap_program ).
     endif.
 
     if exp_abap_include is supplied.
       " Has message got an ABAP stack include as expected?
-      cl_abap_unit_assert=>assert_char_cp( act = message->zif_lso_log_message~get_abap_stack( )-abap_include exp = exp_abap_include ).
+      cl_abap_unit_assert=>assert_char_cp( act = message->get_abap_stack( )-abap_include exp = exp_abap_include ).
     endif.
 
     if exp_abap_event is supplied.
       " Has message got an ABAP stack event as expected?
-      cl_abap_unit_assert=>assert_equals( act = message->zif_lso_log_message~get_abap_stack( )-abap_event exp = exp_abap_event ).
+      cl_abap_unit_assert=>assert_equals( act = message->get_abap_stack( )-abap_event exp = exp_abap_event ).
     endif.
   endmethod.
 
@@ -667,38 +602,37 @@ class zcl_lso_log_unit implementation.
 
 
   method get_request_headers.
-    rt_headers = value tihttpnvp( ( name = 'Content-Type' value = 'application/json' )
-                                  ( name = 'Accept'       value = 'cookies-from-strangers' )
-                                  ( name = 'Status'       value = 'married-with-children' )
-                                  ( name = 'Age'          value = 'old-enough-to-be-your-dad' )
-                                  ( name = 'Client-Date'  value = 'a-complete-waste-of-time' )
-                                  ( name = 'Connection'   value = 'Keep-Alive-Until-Summer' )
-                                  ( name = 'X-Robots-Tag' value = 'Cylon Caprica Six' ) ).
+    rt_headers = value #( ( name = 'Content-Type' value = 'application/json' )
+                          ( name = 'Accept'       value = 'cookies-from-strangers' )
+                          ( name = 'Status'       value = 'married-with-children' )
+                          ( name = 'Age'          value = 'old-enough-to-be-your-dad' )
+                          ( name = 'Client-Date'  value = 'a-complete-waste-of-time' )
+                          ( name = 'Connection'   value = 'Keep-Alive-Until-Summer' )
+                          ( name = 'X-Robots-Tag' value = 'Cylon Caprica Six' ) ).
   endmethod.
 
 
   method get_response_headers.
-    rt_headers = value tihttpnvp( ( name = 'Access-Control-Allow-Origin' value = '*' )
-                                  ( name = 'Connection'                  value = 'Keep-Alive' )
-                                  ( name = 'Content-Encoding'            value = 'gzip' )
-                                  ( name = 'Content-Type'                value = 'text/html; charset=utf-8' )
-                                  ( name = 'Date'                        value = 'Mon, 18 Jul 2016 16:06:00 GMT' )
-                                  ( name = 'Etag'                        value = '"c561c68d0ba92bbeb8b0f612a9199f722e3a621a"' )
-                                  ( name = 'Keep-Alive'                  value = 'timeout=5, max=997' )
-                                  ( name = 'Last-Modified'               value = 'Mon, 18 Jul 2016 02:36:04 GMT' )
-                                  ( name = 'Server'                      value = 'Apache' )
-                                  ( name = 'Set-cookie'                  value = 'mykey=myvalue; expires=Mon, 17-Jul-2017 16:06:00 GMT; Max-Age=31449600; Path=/; secure' )
-                                  ( name = 'Transfer-Encoding'           value = 'chunked' )
-                                  ( name = 'Vary'                        value = 'Cookie, Accept-Encoding' )
-                                  ( name = 'X-Backend-Server'            value = 'developer2.webapp.scl3.mozilla.com' )
-                                  ( name = 'X-Cache-Info'                value = 'not cacheable; meta data too large' )
-                                  ( name = 'X-kuma-revision'             value = '1085259' )
-                                  ( name = 'x-frame-options'             value = 'DENY' ) ).
+    rt_headers = value #( ( name = 'Access-Control-Allow-Origin' value = '*' )
+                          ( name = 'Connection'                  value = 'Keep-Alive' )
+                          ( name = 'Content-Encoding'            value = 'gzip' )
+                          ( name = 'Content-Type'                value = 'text/html; charset=utf-8' )
+                          ( name = 'Date'                        value = 'Mon, 18 Jul 2016 16:06:00 GMT' )
+                          ( name = 'Etag'                        value = '"c561c68d0ba92bbeb8b0f612a9199f722e3a621a"' )
+                          ( name = 'Keep-Alive'                  value = 'timeout=5, max=997' )
+                          ( name = 'Last-Modified'               value = 'Mon, 18 Jul 2016 02:36:04 GMT' )
+                          ( name = 'Server'                      value = 'Apache' )
+                          ( name = 'Set-cookie'                  value = 'mykey=myvalue; expires=Mon, 17-Jul-2017 16:06:00 GMT; Max-Age=31449600; Path=/; secure' )
+                          ( name = 'Transfer-Encoding'           value = 'chunked' )
+                          ( name = 'Vary'                        value = 'Cookie, Accept-Encoding' )
+                          ( name = 'X-Backend-Server'            value = 'developer2.webapp.scl3.mozilla.com' )
+                          ( name = 'X-Cache-Info'                value = 'not cacheable; meta data too large' )
+                          ( name = 'X-kuma-revision'             value = '1085259' )
+                          ( name = 'x-frame-options'             value = 'DENY' ) ).
   endmethod.
 
 
   method get_saml_payload.
-
     payload =
        |<saml:Issuer>ILDCLNT001</saml:Issuer>| &&
        |  <ds:Signature xmlns:ds="http://www.w3.org/2000/09/xmldsig#">| &&
@@ -742,8 +676,8 @@ class zcl_lso_log_unit implementation.
        |   </saml:Attribute>| &&
        |  </saml:AttributeStatement>| &&
        | </saml:Assertion>|.
-
   endmethod.
+
 
   method get_html_payload.
     rv_payload =
@@ -1051,6 +985,31 @@ class zcl_lso_log_unit implementation.
       |   </upsertResponse>| &&
       | </S:Body>| &&
       |</S:Envelope>|.
+  endmethod.
+
+
+  method get_text_payload.
+    rv_payload = |Lorem ipsum dolor sit amet, consectetur adipiscing elit. Proin vitae purus in lorem ullamcorper dapibus. Etiam nunc ligula, feugiat vulputate elit a, semper rutrum justo. Sed a sem vel est gravida congue quis sed arcu. Sed a sollic| &&
+|itudin nibh. Proin cursus aliquam ex non finibus. Curabitur eget libero vel risus lobortis aliquam vel eget dolor. Aliquam sapien ligula, euismod eu facilisis quis, luctus quis erat. Cras egestas metus ornare tortor malesuada, ac facilisis tortor m| &&
+|attis. Nunc odio risus, mattis a felis quis, aliquet sodales nunc. Duis cursus libero id tellus mattis pharetra. Pellentesque orci sapien, aliquet sit amet metus quis, hendrerit lobortis turpis. Aenean condimentum quam purus.| &&
+|Curabitur sodales ex eget egestas vestibulum. Curabitur arcu elit, mattis nec massa in, interdum aliquet nunc. Aliquam rutrum, massa sed eleifend consequat, mauris lectus ullamcorper purus, quis lacinia libero ex vel lacus. Curabitur ac volutpat metus.|
+&&
+|Morbi vitae lobortis nisi, ac eleifend eros. Etiam sit amet libero ut nulla laoreet posuere. Cras gravida sed felis accumsan dapibus. Ut sed posuere augue, auctor suscipit mi. Pellentesque congue risus ac nunc consectetur, at accumsan est efficitur.| &&
+|Maecenas lacus ipsum, imperdiet a condimentum eu, venenatis vel quam. Aenean faucibus eros felis, eget consectetur mi pharetra quis. Ut porttitor convallis orci eu molestie. Etiam rutrum, sapien ac egestas molestie, ligula turpis ultrices felis, id| &&
+|luctus turpis nisl at justo.| &&
+|Integer euismod dictum consectetur. Suspendisse potenti. Vestibulum auctor tempus velit id consectetur. Aliquam laoreet nisl at felis luctus ultrices. Quisque lacinia hendrerit erat nec commodo. Cras molestie turpis ac turpis tristique aliquet. Fusce|
+&&
+|accumsan magna in leo pharetra euismod.| &&
+| Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Aliquam sit amet tempus erat.| &&
+|Suspendisse ac justo luctus risus maximus suscipit eget sit amet nunc. Vivamus hendrerit efficitur tellus, id porttitor eros iaculis non| &&
+|. Vivamus ut nibh lorem. Aenean laoreet nec nisl nec aliquam. Suspendisse ac orci tincidunt, pulvinar ex vel, laoreet dolor. Fusce vitae facilisis magna.| &&
+|Orci varius natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec vitae| &&
+|ex dignissim, elementum magna eu, molestie metus. Suspendisse elementum commodo quam, ac elementum nibh dignissim id. Maecenas malesuada dui nisl.| &&
+|Cras quis gravida purus, vitae tempor risus. Maecenas felis nisl, laoreet vel dui vel, convallis vulputate sapien.| &&
+|Donec scelerisque velit metus, sit amet placerat tortor semper in. Integer sollicitudin tellus non ex venenatis tincidunt. Nunc tempus quam| &&
+|vitae dui dapibus ultrices. Fusce nisi turpis, commodo tempus suscipit facilisis, dignissim ac tortor. Morbi hendrerit turpis urna, quis dignissim eros| &&
+|mattis et. In luctus, felis ut convallis porttitor, dui neque consectetur mauris, et sollicitudin sem| &&
+|velit nec nibh.|.
   endmethod.
 
 endclass.

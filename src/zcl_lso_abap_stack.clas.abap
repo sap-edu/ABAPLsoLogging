@@ -65,7 +65,8 @@ class zcl_lso_abap_stack implementation.
 
 
   method zif_lso_abap_stack~get.
-    stack = cl_abap_get_call_stack=>format_call_stack_with_struct( cl_abap_get_call_stack=>get_call_stack( ) ).
+    ##TODO " ABAP Stack is not permitted!
+*    stack = cl_abap_get_call_stack=>format_call_stack_with_struct( cl_abap_get_call_stack=>get_call_stack( ) ).
   endmethod.
 
 endclass.

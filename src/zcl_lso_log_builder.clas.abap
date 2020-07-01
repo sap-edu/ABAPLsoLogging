@@ -4,14 +4,12 @@ class zcl_lso_log_builder definition
   create public.
 
   public section.
-    methods constructor.
-
     methods add_message
       importing message     type ref to zcl_lso_log_message
       returning value(self) type ref to zcl_lso_log_builder.
 
     methods add_messages
-      importing messages    type ref to if_object_collection
+      importing messages    type zlso_tt_log_messages
       returning value(self) type ref to zcl_lso_log_builder.
 
     methods add_ref_log
@@ -63,28 +61,16 @@ class zcl_lso_log_builder definition
     data time type zlso_log-log_time.
     data changed_by type zlso_log-changed_by.
     data stripped_date type zlso_log-stripped_date.
-    data messages type ref to cl_object_collection.
-    data ref_logs type ref to cl_object_collection.
+    data messages type zlso_tt_log_messages.
+    data ref_logs type zlso_tt_logs.
 
 endclass.
 
 
 class zcl_lso_log_builder implementation.
 
-  method constructor.
-    super->constructor( ).
-
-    me->messages = new #( ).
-    me->ref_logs = new #( ).
-  endmethod.
-
-
   method add_messages.
-    data(iterator) = messages->get_iterator( ).
-
-    while iterator->has_next( ).
-      me->add_message( cast zcl_lso_log_message( iterator->get_next( ) ) ).
-    endwhile.
+    insert lines of messages into table me->messages.
 
     " Builder pattern
     self = me.
@@ -92,7 +78,7 @@ class zcl_lso_log_builder implementation.
 
 
   method add_message.
-    me->messages->add( message ).
+    insert message->get_object( ) into table me->messages.
 
     " Builder pattern
     self = me.
@@ -100,7 +86,7 @@ class zcl_lso_log_builder implementation.
 
 
   method add_ref_log.
-    me->ref_logs->add( ref_log ).
+    insert ref_log->get_object( ) into table me->ref_logs.
 
     " Builder pattern
     self = me.
@@ -119,17 +105,14 @@ class zcl_lso_log_builder implementation.
     me->timestamp = timestamp.
 
     if timestamp is not initial.
-      data(tstmp_date) = value dats( ).
-      data(tstmp_time) = value tims( ).
+      data(tstmp_date) = value datn( ).
+      data(tstmp_time) = value timn( ).
 
       try.
           " Get date/time from time stamp.
-          zcl_lso_log_utils=>utc_tstmp_2_datetime(
-            exporting
-              iv_tstmp = me->timestamp
-            importing
-              ev_date  = tstmp_date
-              ev_time  = tstmp_time ).
+          zcl_lso_log_utils=>utc_tstmp_2_datetime( exporting iv_tstmp = me->timestamp
+                                                   importing ev_date  = tstmp_date
+                                                             ev_time  = tstmp_time ).
         catch cx_parameter_invalid_type
               cx_parameter_invalid_range.
           clear tstmp_date.
@@ -231,12 +214,10 @@ class zcl_lso_log_builder implementation.
 
     log->add_messages( messages ).
 
-    if not me->ref_logs->is_empty( ).
-      data(iterator) = me->ref_logs->get_iterator( ).
-
-      while iterator->has_next( ).
-        log->zif_lso_log~add_ref_log( cast zcl_lso_log( iterator->get_next( ) ) ).
-      endwhile.
+    if me->ref_logs[] is not initial.
+      loop at me->ref_logs using key object_key reference into data(ref_log).
+        log->zif_lso_log~add_ref_log( ref_log->instance ).
+      endloop.
     endif.
   endmethod.
 

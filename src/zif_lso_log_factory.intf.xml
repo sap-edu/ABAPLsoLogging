@@ -53,6 +53,12 @@
      <LANGU>E</LANGU>
      <DESCRIPT>Find last messages by log ids</DESCRIPT>
     </SEOCOMPOTX>
+    <SEOCOMPOTX>
+     <CLSNAME>ZIF_LSO_LOG_FACTORY</CLSNAME>
+     <CMPNAME>LOGS2IDS</CMPNAME>
+     <LANGU>E</LANGU>
+     <DESCRIPT>Create logs ids range</DESCRIPT>
+    </SEOCOMPOTX>
    </DESCRIPTIONS>
   </asx:values>
  </asx:abap>

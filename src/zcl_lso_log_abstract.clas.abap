@@ -6,13 +6,10 @@ class zcl_lso_log_abstract definition
   public section.
     interfaces zif_lso_log_abstract.
 
-    " Potential ALIASES should be implemented in subclasses!
-    methods constructor.
-
   protected section.
-    data tcode      type zlso_log-tcode.
-    data program    type zlso_log-prog.
-    data messages   type ref to cl_object_collection.
+    data tcode    type zlso_log-tcode.
+    data program  type zlso_log-prog.
+    data messages type zlso_tt_log_messages.
 
   private section.
     methods add_t100_exception
@@ -28,11 +25,6 @@ endclass.
 
 
 class zcl_lso_log_abstract implementation.
-
-  method constructor.
-    me->messages = new #( ).
-  endmethod.
-
 
   method zif_lso_log_abstract~exception.
     try.
@@ -60,16 +52,12 @@ class zcl_lso_log_abstract implementation.
 
 
   method zif_lso_log_abstract~add_message.
-    me->messages->add( message ).
+    insert message->get_object( ) into table me->messages.
   endmethod.
 
 
   method zif_lso_log_abstract~add_messages.
-    data(iterator) = messages->get_iterator( ).
-
-    while iterator->has_next( ).
-      me->zif_lso_log_abstract~add_message( cast zcl_lso_log_message( iterator->get_next( ) ) ).
-    endwhile.
+    insert lines of messages into table me->messages.
   endmethod.
 
 
@@ -86,53 +74,41 @@ class zcl_lso_log_abstract implementation.
 
 
   method zif_lso_log_abstract~clear_messages.
-    me->messages->clear( ).
+    clear me->messages.
   endmethod.
 
 
   method zif_lso_log_abstract~get_messages.
-    " Instantiate new collection not to return reference to the original one!
-    messages = new cl_object_collection( ).
-
-    data(iterator) = me->messages->get_iterator( ).
-
-    while iterator->has_next( ).
-      data(message) = cast zcl_lso_log_message( iterator->get_next( ) ).
-
+    loop at me->messages reference into data(message).
       if clone eq abap_true.
-        message = cast zcl_lso_log_message( message->clone( ) ).
+        data(clone_instance) = cast zcl_lso_log_message( message->instance->clone( ) ).
+        data(clone_object) = clone_instance->zif_lso_log_message~get_object( ).
+        message = ref #( clone_object ).
       endif.
 
       if type is initial.
-        cast cl_object_collection( messages )->add( message ).
-      elseif message->get_type( ) eq type.
-        cast cl_object_collection( messages )->add( message ).
+        insert message->* into table messages.
+      elseif message->instance->get_type( ) eq type.
+        insert message->* into table messages.
       endif.
-    endwhile.
+    endloop.
   endmethod.
 
 
   method zif_lso_log_abstract~get_messages_rfc.
-    data(iterator) = me->zif_lso_log_abstract~get_messages( type )->get_iterator( ).
-
-    while iterator->has_next( ).
-      data(message) = cast zcl_lso_log_message( iterator->get_next( ) ).
-
-      insert value #( type   = message->get_type( )
-                      class  = message->get_class( )
-                      number = message->get_number( )
-                      text   = message->get_text( ) )
-        into table messages_rfc.
-    endwhile.
+    loop at me->zif_lso_log_abstract~get_messages( type ) reference into data(message).
+      insert value #( type   = message->instance->get_type( )
+                      class  = message->instance->get_class( )
+                      number = message->instance->get_number( )
+                      text   = message->instance->get_text( ) ) into table messages_rfc.
+    endloop.
   endmethod.
 
 
   method zif_lso_log_abstract~get_symsgs.
-    data(iterator) = me->messages->get_iterator( ).
-
-    while iterator->has_next( ).
-      insert cast zcl_lso_log_message( iterator->get_next( ) )->get_symsg( ) into table symsgs.
-    endwhile.
+    loop at me->messages reference into data(message).
+      insert message->instance->get_symsg( ) into table symsgs.
+    endloop.
   endmethod.
 
 
@@ -164,7 +140,7 @@ class zcl_lso_log_abstract implementation.
 
 
   method zif_lso_log_abstract~has_exception.
-    if me->messages->if_object_collection~is_empty( ).
+    if me->messages[] is initial.
       " No messages collected, leave the method.
       return.
     endif.
@@ -173,17 +149,13 @@ class zcl_lso_log_abstract implementation.
                                                 msgid = cx_t100_key-msgid
                                                 msgno = cx_t100_key-msgno ).
 
-    data(iterator) = me->messages->get_iterator( ).
-
-    while iterator->has_next( ).
-      data(collected_message) = cast zcl_lso_log_message( iterator->get_next( ) ).
-
+    loop at me->messages reference into data(message).
       " Check only message key id, type, number.
-      if cx_message->get_symsg( ) eq corresponding symsg( collected_message->get_symsg( ) except msgv1 msgv2 msgv3 msgv4 ).
+      if cx_message->get_symsg( ) eq corresponding symsg( message->instance->get_symsg( ) except msgv1 msgv2 msgv3 msgv4 ).
         result = abap_true.
         return.
       endif.
-    endwhile.
+    endloop.
   endmethod.
 
 
@@ -194,47 +166,38 @@ class zcl_lso_log_abstract implementation.
 
 
   method zif_lso_log_abstract~has_message.
-    if me->messages->if_object_collection~is_empty( ).
+    if me->messages[] is initial.
       " No messages collected, leave the method.
       return.
     endif.
 
-    data(iterator) = me->messages->get_iterator( ).
-
-    while iterator->has_next( ).
-      data(collected_message) = cast zcl_lso_log_message( iterator->get_next( ) ).
-
-      if message->get_symsg( ) eq collected_message->get_symsg( ).
+    loop at me->messages reference into data(collected_message).
+      if message->get_symsg( ) eq collected_message->instance->get_symsg( ).
         result = abap_true.
         return.
       endif.
-    endwhile.
+    endloop.
   endmethod.
 
-  method zif_lso_log_abstract~has_message_key.
 
-    if me->messages->if_object_collection~is_empty( ).
+  method zif_lso_log_abstract~has_message_key.
+    if me->messages[] is initial.
       " No messages collected, leave the method.
       return.
     endif.
 
-    data(iterator) = me->messages->get_iterator( ).
-
-    while iterator->has_next( ).
-      data(collected_message) = cast zcl_lso_log_message( iterator->get_next( ) ).
-
-      if collected_message->get_symsg( )-msgid = msgid and " e.g. ZLSO_SF_API
-         collected_message->get_symsg( )-msgno = msgno.    " e.g. 003
+    loop at me->messages reference into data(collected_message).
+      if collected_message->instance->get_symsg( )-msgid = msgid and " e.g. ZLSO_SF_API
+         collected_message->instance->get_symsg( )-msgno = msgno.    " e.g. 003
         result = abap_true.
         return.
       endif.
-    endwhile.
-
+    endloop.
   endmethod.
 
 
   method zif_lso_log_abstract~has_messages.
-    result = boolc( me->messages->is_empty( ) eq abap_false ).
+    result = boolc( me->messages[] is not initial ).
   endmethod.
 
 
@@ -244,17 +207,13 @@ class zcl_lso_log_abstract implementation.
       return.
     endif.
 
-    data(iterator) = me->messages->get_iterator( ).
-
-    while iterator->has_next( ).
-      data(message) = cast zcl_lso_log_message( iterator->get_next( ) ).
-
-      if message->get_type( )      eq type and
-         message->get_timestamp( ) gt after.
+    loop at me->messages reference into data(message).
+      if message->instance->get_type( )      eq type and
+         message->instance->get_timestamp( ) gt after.
         result = abap_true.
         return.
       endif.
-    endwhile.
+    endloop.
   endmethod.
 
 
@@ -358,27 +317,6 @@ class zcl_lso_log_abstract implementation.
   endmethod.
 
 
-  method zif_lso_log_abstract~display_messages_popup.
-    data(popup_title) = cond #( when title is not initial then title
-                                else 'Messages'(001) ).
-
-    data(symsgs) = me->zif_lso_log_abstract~get_symsgs( ).
-
-    if type is not initial.
-      delete symsgs where msgty ne type.
-    endif.
-
-    call function 'RHVM_SHOW_MESSAGE'
-      exporting
-        mess_header = popup_title
-      tables
-        tem_message = symsgs
-      exceptions
-        canceled    = 1
-        others      = 2.
-  endmethod.
-
-
   method zif_lso_log_abstract~message.
     message = new zcl_lso_log_message( msgty = msgty
                                        msgid = msgid
@@ -455,19 +393,18 @@ class zcl_lso_log_abstract implementation.
 
   method zif_lso_log_abstract~trace_message.
     data(trace_http_status) = cond #( when http_status is not initial then conv i( http_status )
-                                    else trace->get_http_status( ) ).
+                                      else trace->get_http_status( ) ).
 
     data(trace_msgty) = value zlso_log_message-msgty( ).
+
+    data(status) = new /edu/cl_http_status( trace_http_status ).
 
     if msgty is not initial.
       trace_msgty = msgty.
     else.
-      " Determine message type from the trace HTTP status.
-      if cl_rest_status_code=>is_success( trace_http_status ) eq abap_true.
-        trace_msgty = zif_lso_log_message=>c_type-success.
-      else.
-        trace_msgty = zif_lso_log_message=>c_type-error.
-      endif.
+    " Determine message type from the trace HTTP status.
+      trace_msgty = cond #( when status->is_success( ) then zif_lso_log_message=>c_type-success
+                            else zif_lso_log_message=>c_type-error ).
     endif.
 
     data(trace_msgv1) = value string( ).
@@ -480,7 +417,7 @@ class zcl_lso_log_abstract implementation.
       " it makes sense to present it as a part of message if different than the one stored in trace itself.
       " For instance:
       " &1 (200) - ... Transfer...
-      trace_msgv1 = cl_rest_status_code=>get_reason_phrase( trace_http_status ) &&
+      trace_msgv1 = status->get_reason( ) &&
                     cond #( when trace_http_status ne trace->get_http_status( ) then | ({ trace_http_status })| ).
     endif.
 

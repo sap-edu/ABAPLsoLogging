@@ -15,8 +15,6 @@ class zcx_lso_message definition
                 mv_msgv4 type string optional
                 severity type zif_lso_cx=>ty_severity optional .
 
-    methods get_text redefinition.
-
   protected section.
     methods get_vars
       importing cx          type ref to zcx_lso_message
@@ -74,36 +72,6 @@ class zcx_lso_message implementation.
 
   method zif_lso_cx_message~get_struct.
     struct = me->get_cx_struct( me ).
-  endmethod.
-
-
-  method get_text.
-    if me->text is initial.
-      data(struct) = me->get_cx_struct( me ).
-
-      if struct-msgv1 is not initial or struct-msgv2 is not initial or struct-msgv3 is not initial or struct-msgv4 is not initial.
-        " Select text from DB to replace variables with strings, not char50!!!
-        select single text
-          from t100
-          into @me->text
-         where sprsl = @sy-langu
-           and arbgb = @struct-msgid
-           and msgnr = @struct-msgno.
-
-        if me->text is not initial.
-          me->text = replace( val = me->text sub = '&1' with = struct-msgv1 ).
-          me->text = replace( val = me->text sub = '&2' with = struct-msgv2 ).
-          me->text = replace( val = me->text sub = '&3' with = struct-msgv3 ).
-          me->text = replace( val = me->text sub = '&4' with = struct-msgv4 ).
-        endif.
-      endif.
-
-      if me->text is initial.
-        me->text = super->get_text( ).
-      endif.
-    endif.
-
-    result = me->text.
   endmethod.
 
 

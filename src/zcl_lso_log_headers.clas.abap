@@ -4,25 +4,25 @@ class zcl_lso_log_headers definition
   create public .
 
   public section.
+    types tt_db_headers type sorted table of zlso_log_headers with unique key primary_key components trace_id type name.
 
-    constants:
-      begin of c_type.
+    constants begin of c_type.
     constants request type zlso_log_payload-type value 'REQUEST'.
     constants response type zlso_log_payload-type value 'RESPONSE'.
     constants end of c_type .
 
     class-methods create_request
       importing trace_id        type zlso_log_payload-trace_id
-                headers         type tihttpnvp
+                headers         type if_web_http_request=>name_value_pairs
       returning value(instance) type ref to zcl_lso_log_headers .
 
     class-methods create_response
       importing trace_id        type zlso_log_payload-trace_id
-                headers         type tihttpnvp
+                headers         type if_web_http_request=>name_value_pairs
       returning value(instance) type ref to zcl_lso_log_headers .
 
     class-methods save_collection
-      importing headers       type ref to if_object_collection
+      importing headers       type zlso_tt_log_headers
                 with_commit   type abap_bool default abap_false
       returning value(result) type abap_bool
       raising   zcx_lso_log .
@@ -30,10 +30,10 @@ class zcl_lso_log_headers definition
     methods constructor
       importing trace_id type zlso_log_payload-trace_id
                 type     type zlso_log_payload-type
-                headers  type tihttpnvp .
+                headers  type if_web_http_request=>name_value_pairs.
 
     methods get_headers
-      returning value(headers) type tihttpnvp .
+      returning value(headers) type if_web_http_request=>name_value_pairs.
 
     methods get_trace_id
       returning value(trace_id) type zlso_log_payload-trace_id .
@@ -41,17 +41,18 @@ class zcl_lso_log_headers definition
     methods get_type
       returning value(type) type zlso_log_payload-type .
 
+    methods get_object
+      returning value(object) type zlso_s_log_header.
+
     methods is_saved
       returning value(result) type abap_bool .
 
   protected section.
   private section.
-    types tt_payload_lines type standard table of zlso_d_trace_payload with default key .
-
-    data saved type abap_bool .
-    data headers type tihttpnvp .
-    data trace_id type zlso_log_headers-trace_id .
-    data type type zlso_log_headers-type .
+    data saved type abap_bool.
+    data headers type if_web_http_request=>name_value_pairs.
+    data trace_id type zlso_log_headers-trace_id.
+    data type type zlso_log_headers-type.
 
     methods set_saved
       importing saved type abap_bool default abap_true .
@@ -96,57 +97,53 @@ class zcl_lso_log_headers implementation.
   endmethod.
 
 
+  method get_object.
+    object = value #( trace_id = me->trace_id
+                      type     = me->type
+                      instance = me ).
+  endmethod.
+
+
   method is_saved.
     result = me->saved.
   endmethod.
 
 
   method save_collection.
-    data lt_db_headers type table of zlso_log_headers.
+    data(db_headers) = value tt_db_headers( ).
 
-    data(lo_iterator) = headers->get_iterator( ).
+    loop at headers using key object_key reference into data(object).
+      data(header) = cast zcl_lso_log_headers( object->instance ).
 
-    while lo_iterator->has_next( ) eq abap_true.
-      data(lo_headers) = cast zcl_lso_log_headers( lo_iterator->get_next( ) ).
-
-      if lo_headers->is_saved( ) eq abap_true.
+      if header is not bound or header->is_saved( ).
         continue.
       endif.
 
-      data(lt_headers) = lo_headers->get_headers( ).
+      data(lt_headers) = header->get_headers( ).
 
       loop at lt_headers assigning field-symbol(<ls_header>).
-*       Prepare header data table for saving.
-        insert value zlso_log_headers(
-            trace_id = lo_headers->get_trace_id( )
-            type     = lo_headers->get_type( )
-            name    = <ls_header>-name
-            value   = <ls_header>-value )
-          into table lt_db_headers.
+        " Prepare header data table for saving.
+        insert value #( trace_id = header->get_trace_id( )
+                        type     = header->get_type( )
+                        name     = <ls_header>-name
+                        value    = <ls_header>-value ) into table db_headers.
       endloop.
-    endwhile.
+    endloop.
 
     try.
-        if lt_db_headers[] is not initial.
-*         Save trace header in DB.
-          insert zlso_log_headers
-            from table @lt_db_headers
-            accepting duplicate keys.
+        if db_headers[] is not initial.
+          " Save trace header in DB.
+          insert zlso_log_headers from table @db_headers accepting duplicate keys.
         endif.
 
         result = boolc( sy-dbcnt > 0 ).
 
-        lo_iterator = headers->get_iterator( ).
+        loop at headers using key object_key reference into object.
+          header = cast zcl_lso_log_headers( object->instance ).
 
-        while lo_iterator->has_next( ) eq abap_true.
-          lo_headers = cast zcl_lso_log_headers( lo_iterator->get_next( ) ).
-
-          if lo_headers->get_trace_id( ) is initial.
-            lo_headers->set_saved( abap_false ).
-          elseif lo_headers->is_saved( ) eq abap_false.
-            lo_headers->set_saved( result ).
-          endif.
-        endwhile.
+          header->set_saved( cond #( when header->get_trace_id( ) is initial then abap_false
+                                     else result ) ).
+        endloop.
 
         if with_commit eq abap_true.
           commit work.
@@ -156,7 +153,7 @@ class zcl_lso_log_headers implementation.
           rollback work.
         endif.
 
-*       Save problem, raise an exception.
+        " Save problem, raise an exception.
         raise exception type zcx_lso_log
           exporting
             textid            = zcx_lso_log=>save_error

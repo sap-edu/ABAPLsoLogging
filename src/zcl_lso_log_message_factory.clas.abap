@@ -68,8 +68,8 @@ class zcl_lso_log_message_factory implementation.
 
   method zif_lso_log_message_factory~get_last_by_log_id.
     if msgty is not initial.
-      data(msgtys) = value zif_lso_log_message_factory=>tt_msgty( ( sign   = zif_lso_log=>c_sign-include
-                                                                    option = zif_lso_log=>c_option-equal
+      data(msgtys) = value zif_lso_log_message_factory=>tt_msgty( ( sign   = zif_lso_range=>c_sign-include
+                                                                    option = zif_lso_range=>c_option-equal
                                                                     low    = msgty ) ).
     endif.
 
@@ -81,13 +81,13 @@ class zcl_lso_log_message_factory implementation.
       cl_abap_tstmp=>systemtstmp_syst2utc( exporting syst_date = date_to syst_time = time_to
                                            importing utc_tstmp = data(ts_to) ).
     endif.
-    select * up to 1 rows
+    select *
       from zlso_log_message
-      into table @data(messages)
      where log_id   eq @log_id
        and msgty    in @msgtys
        and timestamp between @ts_from and @ts_to
-    order by timestamp descending.
+    order by timestamp descending
+    into table @data(messages) up to 1 rows.
 
     if sy-subrc ne 0.
       " Not found - &1 &2 &3 &4

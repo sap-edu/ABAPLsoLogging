@@ -105,10 +105,12 @@ class ltc_lso_log_abstract implementation.
     data(messages) = me->cut->zif_lso_log_abstract~get_messages( ).
 
     " One message found?
-    cl_abap_unit_assert=>assert_equals( act = messages->size( ) exp = 1 ).
+    cl_abap_unit_assert=>assert_equals( act = lines( messages ) exp = 1 ).
+
+    data(message) = ref #( messages[ 1 ] ).
 
     " Message structure as expected?
-    cl_abap_unit_assert=>assert_equals( act = cast zcl_lso_log_message( messages->get( 1 ) )->get_symsg( )
+    cl_abap_unit_assert=>assert_equals( act = message->instance->get_symsg( )
                                         exp = value symsg( msgty = zif_lso_log_message=>c_type-error
                                                            msgid = zcx_lso_log=>not_found-msgid
                                                            msgno = zcx_lso_log=>not_found-msgno
@@ -136,10 +138,12 @@ class ltc_lso_log_abstract implementation.
     data(messages) = me->cut->zif_lso_log_abstract~get_messages( ).
 
     " One message found?
-    cl_abap_unit_assert=>assert_equals( act = messages->size( ) exp = 1 ).
+    cl_abap_unit_assert=>assert_equals( act = lines( messages ) exp = 1 ).
+
+    data(message) = ref #( messages[ 1 ] ).
 
     " Message structure as expected?
-    cl_abap_unit_assert=>assert_equals( act = cast zcl_lso_log_message( messages->get( 1 ) )->get_symsg( )
+    cl_abap_unit_assert=>assert_equals( act = message->instance->get_symsg( )
                                         exp = value symsg( msgty = zif_lso_log_message=>c_type-abort
                                                            msgid = zcx_lso_log=>not_found-msgid
                                                            msgno = zcx_lso_log=>not_found-msgno
@@ -158,9 +162,14 @@ class ltc_lso_log_abstract implementation.
 
     me->cut->zif_lso_log_abstract~exception( exception ).
 
-    data(message) = cast zcl_lso_log_message( me->cut->zif_lso_log_abstract~get_messages( zif_lso_log_message=>c_type-abort )->get( 1 ) ).
+    data(messages) = me->cut->zif_lso_log_abstract~get_messages( zif_lso_log_message=>c_type-abort ).
 
-    data(act) = message->get_text( ).
+    " One message found?
+    cl_abap_unit_assert=>assert_equals( act = lines( messages ) exp = 1 ).
+
+    data(message) = ref #( messages[ 1 ] ).
+
+    data(act) = message->instance->get_text( ).
     data(exp) = |Unit Test Message :) { c_long-msgv1 }|.
 
     cl_abap_unit_assert=>assert_equals( act = act exp = exp ).
@@ -177,9 +186,14 @@ class ltc_lso_log_abstract implementation.
 
     me->cut->zif_lso_log_abstract~exception( exception ).
 
-    data(message) = cast zcl_lso_log_message( me->cut->zif_lso_log_abstract~get_messages( zif_lso_log_message=>c_type-abort )->get( 1 ) ).
+    data(messages) = me->cut->zif_lso_log_abstract~get_messages( zif_lso_log_message=>c_type-abort ).
 
-    data(act) = message->get_text( ).
+    " One message found?
+    cl_abap_unit_assert=>assert_equals( act = lines( messages ) exp = 1 ).
+
+    data(message) = ref #( messages[ 1 ] ).
+
+    data(act) = message->instance->get_text( ).
     data(exp) = |Unit Test Message :) { c_long-msgv1 }|.
 
     cl_abap_unit_assert=>assert_equals( act = act exp = exp ).
@@ -204,10 +218,12 @@ class ltc_lso_log_abstract implementation.
     data(messages) = me->cut->zif_lso_log_abstract~get_messages( ).
 
     " One message found?
-    cl_abap_unit_assert=>assert_equals( act = messages->size( ) exp = 1 ).
+    cl_abap_unit_assert=>assert_equals( act = lines( messages ) exp = 1 ).
+
+    data(act_message) = ref #( messages[ 1 ] ).
 
     " Message structure as expected?
-    cl_abap_unit_assert=>assert_equals( act = cast zcl_lso_log_message( messages->get( 1 ) )->get_symsg( )
+    cl_abap_unit_assert=>assert_equals( act = act_message->instance->get_symsg( )
                                         exp = value symsg( msgty = zif_lso_log_message=>c_type-warning
                                                            msgid = c_message-msgid
                                                            msgno = c_message-msgno
@@ -237,9 +253,7 @@ class ltc_lso_log_abstract implementation.
                                               msgv3 = c_message-msgv3
                                               msgv4 = c_message-msgv4 ).
 
-    data(messages) = new cl_object_collection( ).
-    messages->add( message1 ).
-    messages->add( message2 ).
+    data(messages) = value zlso_tt_log_messages( ( message1->get_object( ) ) ( message2->get_object( ) ) ).
 
     me->cut->zif_lso_log_abstract~add_messages( messages ).
 
@@ -249,7 +263,7 @@ class ltc_lso_log_abstract implementation.
     data(act_messages) = me->cut->zif_lso_log_abstract~get_messages( ).
 
     " All message found?
-    cl_abap_unit_assert=>assert_equals( act = act_messages->size( ) exp = 2 ).
+    cl_abap_unit_assert=>assert_equals( act = lines( act_messages ) exp = 2 ).
   endmethod.
 
 
@@ -268,10 +282,12 @@ class ltc_lso_log_abstract implementation.
     data(messages) = me->cut->zif_lso_log_abstract~get_messages( ).
 
     " One message found?
-    cl_abap_unit_assert=>assert_equals( act = messages->size( ) exp = 1 ).
+    cl_abap_unit_assert=>assert_equals( act = lines( messages ) exp = 1 ).
+
+    data(act_message) = ref #( messages[ 1 ] ).
 
     " Message structure as expected?
-    cl_abap_unit_assert=>assert_equals( act = cast zcl_lso_log_message( messages->get( 1 ) )->get_symsg( )
+    cl_abap_unit_assert=>assert_equals( act = act_message->instance->get_symsg( )
                                         exp = value symsg( msgty = zif_lso_log_message=>c_type-error
                                                            msgid = c_message-msgid
                                                            msgno = c_message-msgno
@@ -297,10 +313,12 @@ class ltc_lso_log_abstract implementation.
     cl_abap_unit_assert=>assert_not_initial( messages ).
 
     " One message found?
-    cl_abap_unit_assert=>assert_equals( act = messages->size( ) exp = 1 ).
+    cl_abap_unit_assert=>assert_equals( act = lines( messages ) exp = 1 ).
+
+    data(act_message) = ref #( messages[ 1 ] ).
 
     " Message structure as expected?
-    cl_abap_unit_assert=>assert_equals( act = cast zcl_lso_log_message( messages->get( 1 ) )->get_symsg( )
+    cl_abap_unit_assert=>assert_equals( act = act_message->instance->get_symsg( )
                                         exp = value symsg( msgty = zif_lso_log_message=>c_type-success
                                                            msgid = c_message-msgid
                                                            msgno = c_message-msgno
@@ -380,18 +398,20 @@ class ltc_lso_log_abstract implementation.
 
 
   method get_program.
-    me->cut->zif_lso_log_abstract~set_program( sy-cprog ).
+    ##TODO " ABAP Program in the Steampunk env???
+    me->cut->zif_lso_log_abstract~set_program( 'sy-cprog' ).
 
     " Is program as expected?
-    cl_abap_unit_assert=>assert_equals( act = me->cut->zif_lso_log_abstract~get_program( ) exp = sy-cprog ).
+    cl_abap_unit_assert=>assert_equals( act = me->cut->zif_lso_log_abstract~get_program( ) exp = 'sy-cprog' ).
   endmethod.
 
 
   method get_tcode.
-    me->cut->zif_lso_log_abstract~set_tcode( sy-tcode ).
+    ##TODO " ABAP Program in the Steampunk env???
+    me->cut->zif_lso_log_abstract~set_tcode( 'sy-tcode' ).
 
     " Is transaction code as expected?
-    cl_abap_unit_assert=>assert_equals( act = me->cut->zif_lso_log_abstract~get_tcode( ) exp = sy-tcode ).
+    cl_abap_unit_assert=>assert_equals( act = me->cut->zif_lso_log_abstract~get_tcode( ) exp = 'sy-tcode' ).
   endmethod.
 
 

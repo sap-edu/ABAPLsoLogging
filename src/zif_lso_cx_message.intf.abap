@@ -8,9 +8,9 @@ interface zif_lso_cx_message
   types end of ts_vars.
 
   types begin of ts_struct.
-  types msgid type msgid.
+  types msgid type symsgid.
   types msgno type symsgno.
-  types msgty type msgty.
+  types msgty type symsgty.
   include type ts_vars.
   types end of ts_struct.
 

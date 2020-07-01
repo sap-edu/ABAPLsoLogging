@@ -1,18 +1,27 @@
 interface zif_lso_log_message
   public .
-  interfaces if_os_clone.
+  interfaces zif_lso_clone.
 
-  constants c_msgid type msgid value 'ZLSO_LOG'.
+  types: begin of ts_split_variables,
+           v1 type symsgv,
+           v2 type symsgv,
+           v3 type symsgv,
+           v4 type symsgv,
+         end of ts_split_variables.
+
+  constants c_msgid type symsgid value 'ZLSO_LOG'.
 
   constants begin of c_type.
-  constants success type msgty value 'S'.
-  constants warning type msgty value 'W'.
-  constants info    type msgty value 'I'.
-  constants error   type msgty value 'E'.
-  constants abort   type msgty value 'A'.
+  constants success type symsgty value 'S'.
+  constants warning type symsgty value 'W'.
+  constants info    type symsgty value 'I'.
+  constants error   type symsgty value 'E'.
+  constants abort   type symsgty value 'A'.
   constants end of c_type.
 
   types ts_abap_stack type zlso_s_log_abap_stack.
+
+  aliases clone for zif_lso_clone~clone.
 
   "! <p class="shorttext synchronized" lang="en">Get data</p>
   "! <strong>IMPORTANT</strong> - it is not stored on DB!
@@ -66,7 +75,7 @@ interface zif_lso_log_message
   "!
   "! @parameter trace | <p class="shorttext synchronized" lang="en"></p>
   methods get_trace
-    returning value(trace) type ref to zcl_lso_log_trace .
+    returning value(trace) type ref to zif_lso_log_trace .
 
   "! <p class="shorttext synchronized" lang="en">Get request payload (from trace object)</p>
   "!
@@ -106,17 +115,15 @@ interface zif_lso_log_message
 
   "! <p class="shorttext synchronized" lang="en">Get ABAP stack</p>
   "!
-  "! @parameter program | <p class="shorttext synchronized" lang="en"></p>
+  "! @parameter abap_stack | <p class="shorttext synchronized" lang="en"></p>
   methods get_abap_stack
     returning value(abap_stack) type ts_abap_stack.
 
-
-  types: begin of ts_split_variables,
-           v1 type symsgv,
-           v2 type symsgv,
-           v3 type symsgv,
-           v4 type symsgv,
-         end of ts_split_variables.
+  "! <p class="shorttext synchronized" lang="en">Get object with key</p>
+  "!
+  "! @parameter object | <p class="shorttext synchronized" lang="en"></p>
+  methods get_object
+    returning value(object) type zlso_s_log_message.
 
   methods split
     returning value(variables) type ts_split_variables.

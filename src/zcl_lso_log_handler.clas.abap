@@ -13,8 +13,6 @@ class zcl_lso_log_handler definition
              add_messages           for zif_lso_log_abstract~add_messages,
              add_symsg              for zif_lso_log_abstract~add_symsg,
 
-             display_messages_popup for zif_lso_log_abstract~display_messages_popup,
-
              get_messages           for zif_lso_log_abstract~get_messages,
              get_messages_rfc       for zif_lso_log_abstract~get_messages_rfc,
              get_symsgs             for zif_lso_log_abstract~get_symsgs,
@@ -118,61 +116,11 @@ class zcl_lso_log_handler implementation.
   endmethod.
 
 
-  method zif_lso_log_handler~trace_message.
-    data(trace_http_status) = cond #( when http_status is not initial then conv i( http_status )
-                                      else trace->get_http_status( ) ).
-
-    data(trace_msgty) = value zlso_log_message-msgty( ).
-
-    if msgty is not initial.
-      trace_msgty = msgty.
-    else.
-      " Determine message type from the trace HTTP status.
-      if cl_rest_status_code=>is_success( trace_http_status ) eq abap_true.
-        trace_msgty = zif_lso_log_message=>c_type-success.
-      else.
-        trace_msgty = zif_lso_log_message=>c_type-error.
-      endif.
-    endif.
-
-    data(trace_msgv1) = value string( ).
-
-    if msgv1 is not initial.
-      trace_msgv1 = msgv1.
-    else.
-      " HTTP Status code and HTTP method have been already stored in trace db table.
-      " However in case of $batch transfer, trace object http status is related to the whole API call,
-      " it makes sense to present it as a part of message if different than the one stored in trace itself.
-      " For instance:
-      " &1 (200) - ... Transfer...
-      trace_msgv1 = cl_rest_status_code=>get_reason_phrase( trace_http_status ) &&
-                    cond #( when trace_http_status ne trace->get_http_status( ) then | ({ trace_http_status })| ).
-    endif.
-
-    " Collect trace message in the log handler.
-    message = me->zif_lso_log_handler~message( msgty = trace_msgty
-                                               msgid = msgid
-                                               msgno = msgno
-                                               msgv1 = trace_msgv1
-                                               msgv2 = msgv2
-                                               msgv3 = msgv3
-                                               msgv4 = msgv4
-                                               trace = trace ).
-
-    " Where used for message...
-    message id msgid type trace_msgty number msgno
-      with sy-msgv1 sy-msgv2 sy-msgv3 sy-msgv4 into data(lv_dummy).
-  endmethod.
-
-
   method to_log.
     log = new zcl_lso_log( ).
 
-    log->zif_lso_log_abstract~set_tcode( cond #( when me->get_tcode( ) is not initial then me->get_tcode( )
-                                                 when sy-tcode is not initial then sy-tcode
-                                                 else sy-cprog ) ).
-    log->zif_lso_log_abstract~set_program( cond #( when me->get_program( ) is not initial then me->get_program( )
-                                                   else sy-cprog ) ).
+    log->zif_lso_log_abstract~set_tcode( me->get_tcode( ) ).
+    log->zif_lso_log_abstract~set_program( me->get_program( ) ).
     log->zif_lso_log_abstract~add_messages( me->zif_lso_log_abstract~get_messages( ) ).
   endmethod.
 

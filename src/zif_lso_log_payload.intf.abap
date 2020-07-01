@@ -1,13 +1,10 @@
 interface zif_lso_log_payload
   public .
-
-  interface if_xms_resource load.
-
   constants begin of c_mime_type .
   constants json type string value 'application/json'.
-  constants html type string value if_xms_resource=>mimetype_text_html.
-  constants xml type string value if_xms_resource=>mimetype_text_xml.
-  constants text type string value if_xms_resource=>mimetype_text_plain.
+  constants html type string value 'text/html'.
+  constants xml type string value 'text/xml'.
+  constants text type string value 'text/plain'.
   constants end of c_mime_type .
 
   constants begin of c_type.
@@ -15,11 +12,12 @@ interface zif_lso_log_payload
   constants response type zlso_log_payload-type value 'RESPONSE'.
   constants end of c_type .
 
-  types tt_payload_lines type standard table of zlso_d_trace_payload with empty key .
+  types tt_payloads type sorted table of zlso_log_payload with unique key primary_key components trace_id type seqnr.
+  types tt_payload_lines type standard table of zlso_d_trace_payload with empty key.
 
   "! <p class="shorttext synchronized" lang="en">Get formatted payload (pretty printer)</p>
   "!
-  "! @parameter payload | <p class="shorttext synchronized" lang="en"></p>
+  "! @parameter formatted_payload | <p class="shorttext synchronized" lang="en"></p>
   methods get_formatted_payload
     returning value(formatted_payload) type string .
 
@@ -37,7 +35,7 @@ interface zif_lso_log_payload
 
   "! <p class="shorttext synchronized" lang="en">Get payload string splitted into lines</p>
   "!
-  "! @parameter lines | <p class="shorttext synchronized" lang="en"></p>
+  "! @parameter payload_lines | <p class="shorttext synchronized" lang="en"></p>
   methods get_payload_lines
     returning value(payload_lines) type tt_payload_lines.
 
@@ -77,4 +75,9 @@ interface zif_lso_log_payload
   methods is_xml
     returning value(result) type abap_bool .
 
+  "! <p class="shorttext synchronized" lang="en">Get object with key</p>
+  "!
+  "! @parameter object | <p class="shorttext synchronized" lang="en"></p>
+  methods get_object
+    returning value(object) type zlso_s_log_payload.
 endinterface.

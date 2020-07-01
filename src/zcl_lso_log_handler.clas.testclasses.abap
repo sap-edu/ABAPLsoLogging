@@ -3,7 +3,7 @@ class zcl_lso_log_handler definition local friends lcl_lso_log_handler_unit.
 
 class lcl_lso_log_handler_unit definition for testing
   duration short
-  inheriting from zcl_lso_log_unit
+  inheriting from zcu_lso_log
   risk level harmless.
 
   private section.
@@ -17,6 +17,9 @@ class lcl_lso_log_handler_unit definition for testing
     constants end of c_message.
 
     constants c_trace_id type zlso_log_trace-id value 'LTC_LOG_HANDLER'.
+
+    constants: c_success_text type string value 'SUCCESS',
+               c_error_text   type string value 'ERROR'.
 
     data cut type ref to zcl_lso_log_handler.  "class under test
 
@@ -49,9 +52,6 @@ class lcl_lso_log_handler_unit implementation.
 
 
   method get_messages_rfc.
-    constants: c_success_text type string value 'SUCCESS',
-               c_error_text   type string value 'ERROR'.
-
     " Given we have 1 Success
     cut->zif_lso_log_handler~message( msgty = zif_lso_log_message=>c_type-success
                                       msgid = zcx_lso_log=>zcx_lso_log-msgid
@@ -70,7 +70,7 @@ class lcl_lso_log_handler_unit implementation.
     " Then we get all messages back
     cl_abap_unit_assert=>assert_equals( exp = 2 act = lines( messages ) ).
 
-    " When we ask for Messages of a spcecific type "error"
+    " When we ask for Messages of a specific type "error"
     messages = cut->zif_lso_log_abstract~get_messages_rfc( type = zif_lso_log_message=>c_type-error ).
 
     " Then we get only error messages back
@@ -83,8 +83,14 @@ class lcl_lso_log_handler_unit implementation.
 
 
   method get_messages.
-    cl_abap_unit_assert=>assert_bound( me->cut->get_messages( ) ).
-    cl_abap_unit_assert=>assert_bound( me->cut->get_messages( zif_lso_log_message=>c_type-error ) ).
+    " Given we have 1 Success
+    cut->zif_lso_log_handler~message( msgty = zif_lso_log_message=>c_type-success
+                                      msgid = zcx_lso_log=>zcx_lso_log-msgid
+                                      msgno = zcx_lso_log=>zcx_lso_log-msgno
+                                      msgv1 = c_success_text ).
+
+    cl_abap_unit_assert=>assert_not_initial( me->cut->get_messages( ) ).
+    cl_abap_unit_assert=>assert_not_initial( me->cut->get_messages( zif_lso_log_message=>c_type-success ) ).
   endmethod.
 
 
@@ -117,7 +123,7 @@ class lcl_lso_log_handler_unit implementation.
   endmethod.
 
   method trace_message.
-    data(message) = cut->zif_lso_log_handler~trace_message(
+    data(message) = cut->trace_message(
       trace = new zcl_lso_log_trace( request_url      = 'https://saplearninghub-sbx.plateau.com/learning/oauth-api/rest/v1/token/learning/odatav4/user/v1/Users' "more than 50 chars
                                      request_method   = 'POST'
                                      http_status      = '200'
@@ -147,13 +153,14 @@ class lcl_lso_log_handler_unit implementation.
 
     cl_abap_unit_assert=>assert_true( cut->zif_lso_log_abstract~has_messages( ) ).
 
-    cl_abap_unit_assert=>assert_equals( act = cut->get_messages( )->size( ) exp = 1 ).
+    cl_abap_unit_assert=>assert_equals( act = lines( cut->get_messages( ) ) exp = 1 ).
 
-    data(message) = cast zcl_lso_log_message( cut->get_messages( )->get( 1 ) ).
+    data(messages) = cut->get_messages( ).
+    data(message) = ref #( messages[ 1 ] ).
 
-    cl_abap_unit_assert=>assert_equals( act = message->get_symsg( )-msgid exp = 'ZLSO_LOG' ).
+    cl_abap_unit_assert=>assert_equals( act = message->instance->get_symsg( )-msgid exp = 'ZLSO_LOG' ).
 
-    cl_abap_unit_assert=>assert_equals( act = message->get_text( )
+    cl_abap_unit_assert=>assert_equals( act = message->instance->get_text( )
                                         exp = 'MsgVar1-MsgVar2-MsgVar3-MsgVar4' ).
 
 *   TEST EXCEPTION WITHOUT MESSAGE CLASS
@@ -165,14 +172,15 @@ class lcl_lso_log_handler_unit implementation.
         cut->zif_lso_log_abstract~exception( cx ).
     endtry.
 
-    cl_abap_unit_assert=>assert_equals( act = cut->get_messages( )->size( ) exp = 2 ).
+    cl_abap_unit_assert=>assert_equals( act = lines( cut->get_messages( ) ) exp = 2 ).
 
-    message = cast zcl_lso_log_message( cut->get_messages( )->get( 2 ) ).
+    messages = cut->get_messages( ).
+    message = ref #( messages[ 2 ] ).
 
-    cl_abap_unit_assert=>assert_equals( act = message->get_symsg( )-msgid
+    cl_abap_unit_assert=>assert_equals( act = message->instance->get_symsg( )-msgid
                                         exp = 'ZLSO_LOG' ).
 
-    cl_abap_unit_assert=>assert_equals( act = message->get_text( )
+    cl_abap_unit_assert=>assert_equals( act = message->instance->get_text( )
                                         exp = 'This is ZCX_LSO_LOG...' ).
   endmethod.
 

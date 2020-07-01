@@ -1,7 +1,7 @@
 interface zif_lso_log_trace
   public .
 
-  types tt_traces type standard table of zlso_log_trace with empty key .
+  types tt_traces type standard table of zlso_log_trace with empty key.
 
   "! <p class="shorttext synchronized" lang="en">Get HTTP status</p>
   "!
@@ -56,6 +56,12 @@ interface zif_lso_log_trace
   "! @parameter payload | <p class="shorttext synchronized" lang="en"></p>
   methods get_response_payload
     returning value(payload) type ref to zcl_lso_log_payload .
+
+  "! <p class="shorttext synchronized" lang="en">Get object with key</p>
+  "!
+  "! @parameter object | <p class="shorttext synchronized" lang="en"></p>
+  methods get_object
+    returning value(object) type zlso_s_log_trace.
 
   "! <p class="shorttext synchronized" lang="en">Has headers?</p>
   "!

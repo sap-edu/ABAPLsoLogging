@@ -18,7 +18,7 @@ interface zif_lso_log_factory
   types tt_msgno type range of zlso_log_message-msgno .
   types tt_msgty type range of zlso_log_message-msgty .
   types tt_timestamp type range of zlso_log_message-timestamp .
-  types tt_message_text type range of t100-text .
+  types tt_message_text type range of zlso_d_log_message_text.
   " Payload
   types tt_payload type range of zlso_log_payload-payload .
   " Headers
@@ -54,17 +54,14 @@ interface zif_lso_log_factory
   "! @parameter id | ID of the log (zlso_log DB)
   "! @parameter seqnr | seqnr of the log (zlso_log DB)
   "! @parameter with_ref_logs | Read reference logs
-  "! @parameter log | Log object
-  "! @raising zcx_lso_log |
+  "! @parameter logs | Log object
+  "! @raising zcx_lso_log | No logs found
   methods get
-    importing
-      id            type zlso_log-id
-      seqnr         type zlso_log-seqnr optional
-      with_ref_logs type abap_bool default abap_true
-    returning
-      value(logs)   type zlso_tt_log_objects
-    raising
-      zcx_lso_log .
+    importing id            type zlso_log-id
+              seqnr         type zlso_log-seqnr optional
+              with_ref_logs type abap_bool default abap_true
+    returning value(logs)   type zlso_tt_logs
+    raising   zcx_lso_log .
 
   "! <p class="shorttext synchronized" lang="en">Create logs from log handler</p>
   "!
@@ -72,7 +69,7 @@ interface zif_lso_log_factory
   "! @parameter logs | <p class="shorttext synchronized" lang="en"></p>
   methods create_from_handler
     importing log_handler type ref to zcl_lso_log_handler
-    returning value(logs) type zlso_tt_log_objects.
+    returning value(logs) type zlso_tt_logs.
 
   "! <p class="shorttext synchronized" lang="en">Create log by its structure</p>
   "!
@@ -85,59 +82,56 @@ interface zif_lso_log_factory
   "! <p class="shorttext synchronized" lang="en">Find logs by various search criteria.</p>
   "! <p>Either Log Id or Log Dates parameters are needed because of SQL performance, exception is raised if no provided!</p>
   "!
-  "! @parameter log_id | <p class="shorttext synchronized" lang="en"></p>
-  "! @parameter log_seqnr | <p class="shorttext synchronized" lang="en"></p>
-  "! @parameter log_date | <p class="shorttext synchronized" lang="en"></p>
-  "! @parameter log_time | <p class="shorttext synchronized" lang="en"></p>
-  "! @parameter changed_by | <p class="shorttext synchronized" lang="en"></p>
-  "! @parameter context | <p class="shorttext synchronized" lang="en"></p>
-  "! @parameter tcode | <p class="shorttext synchronized" lang="en"></p>
-  "! @parameter program | <p class="shorttext synchronized" lang="en"></p>
-  "! @parameter msgty | <p class="shorttext synchronized" lang="en"></p>
-  "! @parameter msgid | <p class="shorttext synchronized" lang="en"></p>
-  "! @parameter msgno | <p class="shorttext synchronized" lang="en"></p>
-  "! @parameter http_status | <p class="shorttext synchronized" lang="en"></p>
-  "! @parameter request_url | <p class="shorttext synchronized" lang="en"></p>
-  "! @parameter request_method | <p class="shorttext synchronized" lang="en"></p>
-  "! @parameter message_text_pattern | <p class="shorttext synchronized" lang="en"></p>
-  "! @parameter request_payload_pattern | <p class="shorttext synchronized" lang="en"></p>
-  "! @parameter req_header_name_pattern | <p class="shorttext synchronized" lang="en"></p>
-  "! @parameter req_header_value_pattern | <p class="shorttext synchronized" lang="en"></p>
-  "! @parameter res_header_name_pattern | <p class="shorttext synchronized" lang="en"></p>
-  "! @parameter res_header_value_pattern | <p class="shorttext synchronized" lang="en"></p>
-  "! @parameter response_payload_pattern | <p class="shorttext synchronized" lang="en"></p>
-  "! @parameter iv_with_ref_logs | <p class="shorttext synchronized" lang="en">Include reference logs?</p>
-  "! @parameter rt_logs | <p class="shorttext synchronized" lang="en"></p>
+  "! @parameter log_ids | <p class="shorttext synchronized" lang="en"></p>
+  "! @parameter log_seqnrs | <p class="shorttext synchronized" lang="en"></p>
+  "! @parameter log_dates | <p class="shorttext synchronized" lang="en"></p>
+  "! @parameter log_times | <p class="shorttext synchronized" lang="en"></p>
+  "! @parameter changed_bys | <p class="shorttext synchronized" lang="en"></p>
+  "! @parameter contexts | <p class="shorttext synchronized" lang="en"></p>
+  "! @parameter tcodes | <p class="shorttext synchronized" lang="en"></p>
+  "! @parameter programs | <p class="shorttext synchronized" lang="en"></p>
+  "! @parameter msgtys | <p class="shorttext synchronized" lang="en"></p>
+  "! @parameter msgids | <p class="shorttext synchronized" lang="en"></p>
+  "! @parameter msgnos | <p class="shorttext synchronized" lang="en"></p>
+  "! @parameter http_statuses | <p class="shorttext synchronized" lang="en"></p>
+  "! @parameter request_urls | <p class="shorttext synchronized" lang="en"></p>
+  "! @parameter request_methods | <p class="shorttext synchronized" lang="en"></p>
+  "! @parameter message_texts | <p class="shorttext synchronized" lang="en"></p>
+  "! @parameter request_payloads | <p class="shorttext synchronized" lang="en"></p>
+  "! @parameter req_header_names | <p class="shorttext synchronized" lang="en"></p>
+  "! @parameter req_header_values | <p class="shorttext synchronized" lang="en"></p>
+  "! @parameter res_header_names | <p class="shorttext synchronized" lang="en"></p>
+  "! @parameter res_header_values | <p class="shorttext synchronized" lang="en"></p>
+  "! @parameter response_payloads | <p class="shorttext synchronized" lang="en"></p>
+  "! @parameter with_ref_logs | <p class="shorttext synchronized" lang="en">Include reference logs?</p>
+  "! @parameter logs | <p class="shorttext synchronized" lang="en"></p>
   "! @raising zcx_lso_log | <p class="shorttext synchronized" lang="en"></p>
   methods find
-    importing
-      log_ids              type tt_log_id optional
-      log_seqnrs           type tt_log_seqnr optional
-      log_dates            type tt_log_date optional
-      log_times            type tt_log_time optional
-      changed_bys          type tt_changed_by optional
-      contexts             type tt_context optional
-      tcodes               type tt_tcode optional
-      programs             type tt_program optional
-      msgids               type tt_msgid optional
-      msgnos               type tt_msgno optional
-      msgtys               type tt_msgty optional
-      http_statuses        type tt_http_status optional
-      request_urls         type tt_request_url optional
-      request_methods      type tt_request_method optional
-      message_texts        type tt_message_text optional
-      request_payloads     type tt_payload optional
-      response_payloads    type tt_payload optional
-      req_header_names     type tt_header_name optional
-      req_header_values    type tt_header_value optional
-      res_header_names     type tt_header_name optional
-      res_header_values    type tt_header_value optional
-      with_ref_logs        type abap_bool default abap_true
-        preferred parameter log_ids
-    returning
-      value(logs)          type zlso_tt_log_objects
-    raising
-      zcx_lso_log .
+    importing log_ids           type tt_log_id optional
+              log_seqnrs        type tt_log_seqnr optional
+              log_dates         type tt_log_date optional
+              log_times         type tt_log_time optional
+              changed_bys       type tt_changed_by optional
+              contexts          type tt_context optional
+              tcodes            type tt_tcode optional
+              programs          type tt_program optional
+              msgids            type tt_msgid optional
+              msgnos            type tt_msgno optional
+              msgtys            type tt_msgty optional
+              http_statuses     type tt_http_status optional
+              request_urls      type tt_request_url optional
+              request_methods   type tt_request_method optional
+              message_texts     type tt_message_text optional
+              request_payloads  type tt_payload optional
+              response_payloads type tt_payload optional
+              req_header_names  type tt_header_name optional
+              req_header_values type tt_header_value optional
+              res_header_names  type tt_header_name optional
+              res_header_values type tt_header_value optional
+              with_ref_logs     type abap_bool default abap_true
+                preferred parameter log_ids
+    returning value(logs)       type zlso_tt_logs
+    raising   zcx_lso_log .
 
   "! <p class="shorttext synchronized" lang="en">Find last messages by log ids</p>
   "!
@@ -167,6 +161,14 @@ interface zif_lso_log_factory
   "!
   "! @parameter logs | <p class="shorttext synchronized" lang="en"></p>
   methods delete_collection
-    importing logs type ref to cl_object_collection.
+    importing logs type zlso_tt_logs.
+
+  "! <p class="shorttext synchronized" lang="en">Create logs ids range</p>
+  "!
+  "! @parameter logs | <p class="shorttext synchronized" lang="en"></p>
+  "! @parameter ids | <p class="shorttext synchronized" lang="en"></p>
+  methods logs2ids
+    importing logs       type zlso_tt_logs
+    returning value(ids) type zif_lso_log_factory=>tt_log_id.
 
 endinterface.

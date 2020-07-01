@@ -10,14 +10,14 @@ class zcl_lso_log definition
     interfaces zif_lso_log.
     interfaces zif_lso_comparable.
 
+    constants lock_object type if_abap_lock_object=>tv_name value '/EDU/ELOG'.
+
     " Backward compatibility
     " Abstract
     aliases:
              add_message            for zif_lso_log_abstract~add_message,
              add_messages           for zif_lso_log_abstract~add_messages,
              add_symsg              for zif_lso_log_abstract~add_symsg,
-
-             display_messages_popup for zif_lso_log_abstract~display_messages_popup,
 
              get_messages_rfc       for zif_lso_log_abstract~get_messages_rfc,
              get_symsgs             for zif_lso_log_abstract~get_symsgs,
@@ -78,6 +78,8 @@ class zcl_lso_log definition
   protected section.
 
   private section.
+    types tt_objects type hashed table of zlso_s_log with unique key id seqnr.
+
     class-data log_context type zlso_d_log_context.
 
     data id type zlso_log-id .
@@ -89,17 +91,14 @@ class zcl_lso_log definition
     data changed_by type zlso_log-changed_by .
     data context type zlso_d_log_context.
     data stripped_date type zlso_log-stripped_date.
-    data objects type zif_lso_log=>tt_objects.
-    data ref_logs type ref to cl_object_collection.
-
-    " Separate table variable for reference logs objects - PERFORMANCE Reason!!!
-    data ref_logs_objects type zif_lso_log=>tt_objects.
+    data ref_logs type zlso_tt_logs.
+    data cross_refs type tt_objects.
 
     methods create_id
       returning value(id) type zlso_log-id .
 
     methods check_cross_reference
-      importing log           type ref to zcl_lso_log
+      importing log           type ref to zif_lso_log
       returning value(result) type abap_bool
       raising   zcx_lso_log.
 
@@ -108,7 +107,7 @@ class zcl_lso_log definition
       raising   zcx_lso_log .
 
     methods get_messages_to_save
-      returning value(messages) type ref to if_object_collection.
+      returning value(messages) type zlso_tt_log_messages.
 
     methods set_seqnr
       importing seqnr type zlso_log-seqnr .
@@ -132,7 +131,7 @@ class zcl_lso_log definition
       importing log_structure type ref to zlso_log.
 
     methods save_ref_logs
-      returning value(saved_ref_logs) type zif_lso_log=>tt_objects
+      returning value(saved_ref_logs) type zlso_tt_logs
       raising   zcx_lso_log.
 
     methods save_db
@@ -143,12 +142,7 @@ class zcl_lso_log definition
     methods lock_before_save
       raising zcx_lso_log.
 
-    methods clear_ref_logs_cache.
-
-    methods cache_ref_log
-      importing ref_log type ref to zif_lso_log.
-
-    methods cache_ref_logs.
+    methods unlock_after_save.
 endclass.
 
 
@@ -158,7 +152,7 @@ class zcl_lso_log implementation.
     super->constructor( ).
 
     me->id = id.
-    me->ref_logs = new cl_object_collection( ).
+    me->ref_logs = value #( ).
 
     "Assign context if set.
     me->context = zcl_lso_log=>log_context.
@@ -171,10 +165,7 @@ class zcl_lso_log implementation.
 
 
   method zif_lso_log~add_ref_log.
-    me->ref_logs->add( ref_log ).
-
-    " PERFORMANCE - cache reference log in the table.
-    me->cache_ref_log( ref_log ).
+    insert ref_log->get_object( ) into table me->ref_logs.
   endmethod.
 
 
@@ -214,26 +205,13 @@ class zcl_lso_log implementation.
 
 
   method zif_lso_log~get_messages.
-    " Instantiate new messages collection not to destroy collected messages per log (It will contain messages objects from several logs).
-    messages = new cl_object_collection( ).
-
-    data(iterator) = me->zif_lso_log_abstract~get_messages( )->get_iterator( ).
-
-    while iterator->has_next( ).
-      cast cl_object_collection( messages )->add( cast zcl_lso_log_message( iterator->get_next( ) ) ).
-    endwhile.
+    insert lines of me->messages into table messages.
 
     if with_ref eq abap_true and me->zif_lso_log~has_ref_logs( ).
       " Get also messages from reference logs.
-      iterator = me->ref_logs->get_iterator( ).
-
-      while iterator->has_next( ).
-        data(ref_messages_iterator) = cast zcl_lso_log( iterator->get_next( ) )->zif_lso_log~get_messages( with_ref )->get_iterator( ).
-
-        while ref_messages_iterator->has_next( ).
-          cast cl_object_collection( messages )->add( ref_messages_iterator->get_next( ) ).
-        endwhile.
-      endwhile.
+      loop at me->ref_logs using key object_key reference into data(ref_log).
+        insert lines of ref_log->instance->get_messages( with_ref ) into table messages.
+      endloop.
     endif.
   endmethod.
 
@@ -278,16 +256,14 @@ class zcl_lso_log implementation.
 
     if with_ref eq abap_true and me->zif_lso_log~has_ref_logs( ).
       " Check reference logs if exception was added there.
-      data(iterator) = me->zif_lso_log~get_ref_logs( )->get_iterator( ).
-
-      while iterator->has_next( ).
-        result = cast zcl_lso_log( iterator->get_next( ) )->zif_lso_log~has_exception( cx_t100_key ).
+      loop at me->ref_logs using key object_key reference into data(ref_log).
+        result = ref_log->instance->has_exception( cx_t100_key ).
 
         if result eq abap_true.
           " Exception message has been found, no need to check further reference logs.
           return.
         endif.
-      endwhile.
+      endloop.
     endif.
   endmethod.
 
@@ -302,17 +278,14 @@ class zcl_lso_log implementation.
 
     if with_ref eq abap_true and me->zif_lso_log~has_ref_logs( ).
       " Check reference logs if message was added there.
-      data(iterator) = me->zif_lso_log~get_ref_logs( )->get_iterator( ).
-
-      while iterator->has_next( ).
-        result = cast zcl_lso_log( iterator->get_next( ) )->zif_lso_log~has_message( message  = message
-                                                                                     with_ref = with_ref ).
-
+      loop at me->ref_logs using key object_key reference into data(ref_log).
+        result = ref_log->instance->has_message( message  = message
+                                                 with_ref = with_ref ).
         if result eq abap_true.
           " Message has been found, no need to check further reference logs.
           return.
         endif.
-      endwhile.
+      endloop.
     endif.
   endmethod.
 
@@ -326,16 +299,14 @@ class zcl_lso_log implementation.
 
     if with_ref eq abap_true and me->zif_lso_log~has_ref_logs( ).
       " Check reference logs if messages were added there.
-      data(iterator) = me->zif_lso_log~get_ref_logs( )->get_iterator( ).
-
-      while iterator->has_next( ).
-        result = cast zcl_lso_log( iterator->get_next( ) )->zif_lso_log~has_messages( with_ref ).
+      loop at me->ref_logs using key object_key reference into data(ref_log).
+        result = ref_log->instance->has_messages( with_ref ).
 
         if result eq abap_true.
           " Message has been found, no need to check further reference logs.
           return.
         endif.
-      endwhile.
+      endloop.
     endif.
   endmethod.
 
@@ -343,16 +314,12 @@ class zcl_lso_log implementation.
   method zif_lso_log~has_message_type.
     data(messages) = me->zif_lso_log~get_messages( with_ref ).
 
-    data(iterator) = messages->get_iterator( ).
-
-    while iterator->has_next( ).
-      data(message) = cast zcl_lso_log_message( iterator->get_next( ) ).
-
-      if message->get_type( ) eq type.
+    loop at messages using key object_key reference into data(message).
+      if message->instance->get_type( ) eq type.
         result = abap_true.
         return.
       endif.
-    endwhile.
+    endloop.
   endmethod.
 
 
@@ -361,18 +328,13 @@ class zcl_lso_log implementation.
       return.
     endif.
 
-    if me->ref_logs_objects[] is initial.
-      " Collection to table for performance reason!
-      me->cache_ref_logs( ).
-    endif.
-
-    result = boolc( line_exists( me->ref_logs_objects[ id    = log->zif_lso_log~get_id( )
-                                                       seqnr = log->zif_lso_log~get_seqnr( ) ] ) ).
+    result = boolc( line_exists( me->ref_logs[ key object_key components id    = log->get_id( )
+                                                                         seqnr = log->get_seqnr( ) ] ) ).
   endmethod.
 
 
   method zif_lso_log~has_ref_logs.
-    result = boolc( not me->ref_logs->is_empty( ) ).
+    result = boolc( me->ref_logs is not initial ).
   endmethod.
 
 
@@ -450,24 +412,21 @@ class zcl_lso_log implementation.
 
 
   method zif_lso_log~lock.
-    " Lock log table against potential modifications for given log id.
-    call function 'ENQUEUE_EZLSO_LOG'
-      exporting
-        id             = me->get_id( )
-      exceptions
-        foreign_lock   = 1
-        system_failure = 2
-        others         = 3.
+    data(lock) = cl_abap_lock_object_factory=>get_instance( lock_object ).
+    data(id) = me->get_id( ).
 
-    result = boolc( sy-subrc eq 0 ).
+    " Lock log table against potential modifications for given id.
+    lock->enqueue( it_parameter = value #( ( name = 'ID' value = ref #( id ) ) )
+                   _wait        = if_abap_lock_object=>cs_wait-yes ).
   endmethod.
 
 
   method zif_lso_log~unlock.
-    " Unlock log table for potential modifications.
-    call function 'DEQUEUE_EZLSO_LOG'
-      exporting
-        id = me->get_id( ).
+    data(lock) = cl_abap_lock_object_factory=>get_instance( lock_object ).
+    data(id) = me->get_id( ).
+
+    " Unlock log table for further modifications.
+    lock->dequeue( it_parameter = value #( ( name = 'ID' value = ref #( id ) ) ) ).
   endmethod.
 
 
@@ -477,7 +436,7 @@ class zcl_lso_log implementation.
       return.
     endif.
 
-    clear me->objects[].
+    clear me->cross_refs[].
 
     if me->zif_lso_log~has_ref_logs( ).
       " Check if there is a cross reference relation between logs, raise an exception if so!
@@ -499,12 +458,12 @@ class zcl_lso_log implementation.
         " These ones will be saved with reference log save.
         data(messages_to_save) = me->get_messages_to_save( ).
 
-        if messages_to_save->is_empty( ) and saved_ref_logs[] is initial.
+        if messages_to_save[] is initial and saved_ref_logs[] is initial.
           " There are neither messages to be saved nor reference logs saved.
           result = abap_false.
 
           " Unlock the log table if the caller triggered saving the log even though no additional messages where added.
-          me->zif_lso_log~unlock( ).
+          me->unlock_after_save( ).
 
           return.
         endif.
@@ -512,9 +471,9 @@ class zcl_lso_log implementation.
         " Initialize structure for log saving.
         data(ls_log) = value zlso_log( id            = me->zif_lso_log~get_id( )
                                        seqnr         = me->get_next_seqnr( )
-                                       changed_by    = sy-uname
-                                       tcode         = cond #( when me->tcode   is not initial then me->tcode   else sy-tcode )
-                                       prog          = cond #( when me->program is not initial then me->program else sy-cprog )
+                                       changed_by    = cl_abap_context_info=>get_user_alias( )
+                                       tcode         = me->tcode
+                                       prog          = me->program
                                        context       = me->context
                                        stripped_date = me->zif_lso_log~get_stripped_date( ) ).
 
@@ -526,26 +485,21 @@ class zcl_lso_log implementation.
           ls_log-log_mode = me->mode.
         else.
           ls_log-log_mode = cond #( when sy-batch is not initial then zif_lso_log=>c_mode-batch
-                                    when sy-binpt is not initial then zif_lso_log=>c_mode-batch_input
                                     else zif_lso_log=>c_mode-dialog ).
         endif.
 
         " Save data into DB
         if me->zif_lso_log~has_ref_logs( ) and saved_ref_logs[] is not initial.
-          data(iterator) = me->ref_logs->get_iterator( ).
-
-          while iterator->has_next( ).
-            data(ref_log) = cast zcl_lso_log( iterator->get_next( ) ).
-
+          loop at me->ref_logs using key object_key reference into data(ref_log).
             " Process only saved reference logs!
-            if line_exists( saved_ref_logs[ id    = ref_log->zif_lso_log~get_id( )
-                                            seqnr = ref_log->zif_lso_log~get_seqnr( ) ] ).
-              ls_log-ref_id    = ref_log->zif_lso_log~get_id( ).
-              ls_log-ref_seqnr = ref_log->zif_lso_log~get_seqnr( ).
+            if line_exists( saved_ref_logs[ key object_key components id    = ref_log->instance->get_id( )
+                                                                      seqnr = ref_log->instance->get_seqnr( ) ] ).
+              ls_log-ref_id    = ref_log->instance->get_id( ).
+              ls_log-ref_seqnr = ref_log->instance->get_seqnr( ).
 
               result = me->save_db( ref #( ls_log ) ).
             endif.
-          endwhile.
+          endloop.
         else.
           result = me->save_db( ref #( ls_log ) ).
         endif.
@@ -560,7 +514,7 @@ class zcl_lso_log implementation.
         me->tcode      = ls_log-tcode.
         me->program    = ls_log-prog.
 
-        if not messages_to_save->is_empty( ).
+        if messages_to_save[] is not initial.
           " Save messages.
           zcl_lso_log_message=>save_collection( log_id    = ls_log-id
                                                 log_seqnr = ls_log-seqnr
@@ -570,35 +524,33 @@ class zcl_lso_log implementation.
         commit work and wait.
 
         " Unlock the log table.
-        me->zif_lso_log~unlock( ).
+        me->unlock_after_save( ).
       cleanup.
         " Unlock the log table in case exception was raised!
-        me->zif_lso_log~unlock( ).
+        me->unlock_after_save( ).
     endtry.
   endmethod.
 
 
   method save_ref_logs.
-    data(iterator) = me->ref_logs->get_iterator( ).
-
-    while iterator->has_next( ).
-      data(ref_log) = cast zcl_lso_log( iterator->get_next( ) ).
+    loop at me->ref_logs using key object_key reference into data(ref_log).
+      data(instance) = cast zcl_lso_log( ref_log->instance ).
 
       " Set reference log context if not set.
-      if ref_log->context is initial.
-        ref_log->context = me->context.
+      if instance->context is initial.
+        instance->context = me->context.
       endif.
 
       " Save reference log.
-      data(is_saved) = ref_log->zif_lso_log~save( ).
+      data(is_saved) = ref_log->instance->save( ).
 
       if is_saved ne abap_true.
         " Check if reference has been already saved in the past?
         select single @abap_true
           from zlso_log
-          into @is_saved
          where id    = @ref_log->id
-           and seqnr = @ref_log->seqnr.
+           and seqnr = @ref_log->seqnr
+          into @is_saved.
       endif.
 
       data(ref_relation_saved) = abap_false.
@@ -607,55 +559,35 @@ class zcl_lso_log implementation.
         " Check if there is already saved relation between parent and the reference log?
         select single @abap_true
           from zlso_log
-          into @ref_relation_saved
          where id        = @me->id
            and ref_id    = @ref_log->id
-           and ref_seqnr = @ref_log->seqnr.
+           and ref_seqnr = @ref_log->seqnr
+          into @ref_relation_saved.
       endif.
 
       if is_saved eq abap_true and ref_relation_saved ne abap_true.
         " Reference log saved and there is no relation with its parent yet.
-        insert value #( id       = ref_log->zif_lso_log~get_id( )
-                        seqnr    = ref_log->zif_lso_log~get_seqnr( )
-                        instance = ref_log )
-          into table saved_ref_logs.
+        insert ref_log->instance->get_object( ) into table saved_ref_logs.
       endif.
-    endwhile.
-
-    " Clear reference logs objects cache.
-    " The sequence number is set during saving, reference logs cache key is not valid any more.
-    me->clear_ref_logs_cache( ).
+    endloop.
   endmethod.
 
 
   method create_id.
-    data(next_id) = value das_res_id( ).
+    try.
+        " Number range created by the /EDU/CL_LOGNR_CREATE class.
+        cl_numberrange_runtime=>number_get( exporting nr_range_nr = '01'
+                                                      object      = '/EDU/LOGNR'
+                                            importing number      = data(number) ).
+        id = number.
+      catch cx_nr_object_not_found cx_number_ranges.
+        clear id.
+    endtry.
 
-    call function 'NUMBER_GET_NEXT'
-      exporting
-        nr_range_nr             = '00'
-        object                  = 'ZLSO_LOGID'
-      importing
-        number                  = next_id
-      exceptions
-        interval_not_found      = 1
-        number_range_not_intern = 2
-        object_not_found        = 3
-        quantity_is_0           = 4
-        quantity_is_not_1       = 5
-        interval_overflow       = 6
-        buffer_overflow         = 7
-        others                  = 8.
-
-    if next_id ne 0 and sy-subrc = 0.
-      id = |{ sy-sysid }{ next_id }|.
-    else.
+    if id is initial.
       try.
-          " Use uuid if no range is not working.
-          id = cl_system_uuid=>if_system_uuid_static~create_uuid_c22( ).
+          id = cl_system_uuid=>if_system_uuid_static~create_uuid_c32( ).
         catch cx_uuid_error.
-          wait up to 1 seconds.
-          retry.
       endtry.
     endif.
   endmethod.
@@ -667,9 +599,9 @@ class zcl_lso_log implementation.
     data(max_seqnr) = value zlso_log-seqnr( ).
 
     select max( seqnr )
-      into @max_seqnr
       from zlso_log
-     where id eq @id.
+     where id eq @id
+      into @max_seqnr.
 
     seqnr = max_seqnr + 1.
 
@@ -684,8 +616,8 @@ class zcl_lso_log implementation.
 
 
   method check_cross_reference.
-    data(object) = ref #( me->objects[ id    = log->zif_lso_log~get_id( )
-                                       seqnr = log->zif_lso_log~get_seqnr( ) ] optional ).
+    data(object) = ref #( me->cross_refs[ id    = log->get_id( )
+                                          seqnr = log->get_seqnr( ) ] optional ).
 
     " Check also an instance, not only the key!
     " Seqnr is initial before save but still there can be two reference logs with the same id but different messages:
@@ -696,26 +628,20 @@ class zcl_lso_log implementation.
       return.
     endif.
 
-    insert value #( id       = log->zif_lso_log~get_id( )
-                    seqnr    = log->zif_lso_log~get_seqnr( )
-                    instance = log )
-      into table me->objects.
+    insert log->get_object( ) into table me->cross_refs.
 
-    if log->zif_lso_log~has_ref_logs( ).
-      data(iterator) = log->ref_logs->get_iterator( ).
-
-      while iterator->has_next( ).
-        data(ref_log) = cast zcl_lso_log( iterator->get_next( ) ).
-
-        if me->check_cross_reference( ref_log ).
+    if log->has_ref_logs( ).
+      loop at log->get_ref_logs( ) using key object_key reference into data(ref_log).
+        " Check cross reference recursively.
+        if me->check_cross_reference( ref_log->instance ).
           " Cross Reference error - &1 &2
           raise exception type zcx_lso_log
             exporting
               textid   = zcx_lso_log=>cross_reference_error
-              mv_msgv1 = |{ log->zif_lso_log~get_id( ) }/{ log->zif_lso_log~get_seqnr( ) }|
-              mv_msgv2 = |{ ref_log->zif_lso_log~get_id( ) }/{ ref_log->zif_lso_log~get_seqnr( ) }|.
+              mv_msgv1 = |{ log->get_id( ) }/{ log->get_seqnr( ) }|
+              mv_msgv2 = |{ ref_log->instance->get_id( ) }/{ ref_log->instance->get_seqnr( ) }|.
         endif.
-      endwhile.
+      endloop.
     endif.
   endmethod.
 
@@ -724,26 +650,22 @@ class zcl_lso_log implementation.
     " 20200311090947.3125490
     get time stamp field log_structure->timestamp.
 
-    data(tstmp_date) = value dats( ).
-    data(tstmp_time) = value tims( ).
+    data(tstmp_date) = value datn( ).
+    data(tstmp_time) = value timn( ).
 
     try.
-*       Get date/time from time stamp.
-        zcl_lso_log_utils=>utc_tstmp_2_datetime(
-          exporting
-            iv_tstmp = log_structure->timestamp
-          importing
-            ev_date  = tstmp_date
-            ev_time  = tstmp_time ).
+        " Get date/time from time stamp.
+        zcl_lso_log_utils=>utc_tstmp_2_datetime( exporting iv_tstmp = log_structure->timestamp
+                                                 importing ev_date  = tstmp_date
+                                                           ev_time  = tstmp_time ).
       catch cx_parameter_invalid_type
             cx_parameter_invalid_range.
-        tstmp_date = sy-datum.
-        tstmp_time = sy-uzeit.
+        tstmp_date = cl_abap_context_info=>get_system_date( ).
+        tstmp_time = cl_abap_context_info=>get_system_time( ).
     endtry.
 
     log_structure->log_date = tstmp_date.
     log_structure->log_time = tstmp_time.
-
   endmethod.
 
 
@@ -765,26 +687,20 @@ class zcl_lso_log implementation.
 
 
   method get_messages_to_save.
-    messages = new cl_object_collection( ).
-
-    data(iterator) = me->zif_lso_log_abstract~get_messages( )->get_iterator( ).
-
-    while iterator->has_next( ).
-      data(message) = cast zcl_lso_log_message( iterator->get_next( ) ).
-
-      if message->get_log_id( ) is initial and message->get_log_seqnr( ) is initial.
-        cast cl_object_collection( messages )->add( message ).
+    loop at me->messages using key object_key reference into data(message).
+      if message->instance->get_log_id( ) is initial and message->instance->get_log_seqnr( ) is initial.
+        insert message->* into table messages.
       endif.
-    endwhile.
+    endloop.
   endmethod.
 
 
   method zif_lso_comparable~equals.
     try.
-        data(log) = cast zcl_lso_log( io_object ).
+        data(log) = cast zif_lso_log( io_object ).
 
-        rv_is_equal = boolc( me eq log or ( me->zif_lso_log~get_id( )    eq log->zif_lso_log~get_id( ) and
-                                            me->zif_lso_log~get_seqnr( ) eq log->zif_lso_log~get_seqnr( ) ) ).
+        rv_is_equal = boolc( me eq log or ( me->zif_lso_log~get_id( )    eq log->get_id( ) and
+                                            me->zif_lso_log~get_seqnr( ) eq log->get_seqnr( ) ) ).
       catch cx_sy_move_cast_error.
         rv_is_equal = abap_false.
     endtry.
@@ -807,43 +723,23 @@ class zcl_lso_log implementation.
 
 
   method lock_before_save.
-    " Try to lock the log table for given log id.
-    while me->zif_lso_log~lock( ) eq abap_false.
-      data(lv_index) = sy-index.
-
-      " Log couldn't be locked, wait 1 second and try to lock it again.
-      wait up to 1 seconds.
-
-      if lv_index > 10.
-        " Method tried to lock the log dozen of times and it's still locked - raise an exception!
+    try.
+        me->zif_lso_log~lock( ).
+      catch cx_abap_foreign_lock
+            cx_abap_lock_failure.
         raise exception type zcx_lso_log
           exporting
             textid   = zcx_lso_log=>lock_error
             mv_msgv1 = |Log { me->zif_lso_log~get_id( ) }|.
-      endif.
-    endwhile.
+    endtry.
   endmethod.
 
 
-  method clear_ref_logs_cache.
-    clear me->ref_logs_objects[].
-  endmethod.
-
-
-  method cache_ref_logs.
-    data(iterator) = me->ref_logs->get_iterator( ).
-
-    while iterator->has_next( ).
-      me->cache_ref_log( cast zif_lso_log( iterator->get_next( ) ) ).
-    endwhile.
-  endmethod.
-
-
-  method cache_ref_log.
-    insert value #( id       = ref_log->get_id( )
-                    seqnr    = ref_log->get_seqnr( )
-                    instance = ref_log )
-      into table me->ref_logs_objects.
+  method unlock_after_save.
+    try.
+        me->zif_lso_log~unlock( ).
+      catch cx_abap_lock_failure.
+    endtry.
   endmethod.
 
 endclass.

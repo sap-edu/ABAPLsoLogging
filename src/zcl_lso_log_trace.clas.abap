@@ -17,6 +17,7 @@ class zcl_lso_log_trace definition
     aliases get_stripped_date for zif_lso_log_trace~get_stripped_date.
     aliases get_response_headers for zif_lso_log_trace~get_response_headers.
     aliases get_response_payload for zif_lso_log_trace~get_response_payload.
+    aliases get_object for zif_lso_log_trace~get_object.
     aliases has_headers for zif_lso_log_trace~has_headers.
     aliases has_payload for zif_lso_log_trace~has_payload.
     aliases has_request_headers for zif_lso_log_trace~has_request_headers.
@@ -27,14 +28,10 @@ class zcl_lso_log_trace definition
     aliases set_http_status for zif_lso_log_trace~set_http_status.
 
     class-methods save_collection
-      importing traces        type ref to if_object_collection
+      importing traces        type zlso_tt_log_traces
                 with_commit   type abap_bool default abap_false
       returning value(result) type abap_bool
       raising   zcx_lso_log .
-
-    class-methods conv_table_to_json
-      importing input_tab       type any table
-      returning value(json_str) type string .
 
     methods constructor
       importing id               type zlso_log_trace-id optional
@@ -43,8 +40,8 @@ class zcl_lso_log_trace definition
                 http_status      type i
                 request_payload  type string
                 response_payload type string
-                request_headers  type tihttpnvp optional
-                response_headers type tihttpnvp optional .
+                request_headers  type if_web_http_request=>name_value_pairs optional
+                response_headers type if_web_http_request=>name_value_pairs optional .
 
   protected section.
   private section.
@@ -60,7 +57,7 @@ class zcl_lso_log_trace definition
     data response_headers type ref to zcl_lso_log_headers .
 
     methods create_id
-      returning value(next_id) type zlso_log_trace-id .
+      returning value(id) type zlso_log_trace-id .
 
     methods is_saved
       returning value(result) type abap_bool .
@@ -111,56 +108,22 @@ class zcl_lso_log_trace implementation.
     endif.
   endmethod.
 
-  method conv_table_to_json.
-
-    json_str = /ui2/cl_json=>serialize( data        = input_tab
-                                        compress    = abap_true
-                                        pretty_name = /ui2/cl_json=>pretty_mode-camel_case ).
-    data strings type table of string.
-    split json_str at '","' into table strings.
-    json_str = ||.
-    loop at strings assigning field-symbol(<string>).
-      if lines( strings ) = sy-tabix.
-        json_str = |{ json_str }{ <string> }|.
-      else.
-        json_str = |{ json_str }{ <string> }",{ cl_abap_char_utilities=>newline }    "|.
-      endif.
-    endloop.
-
-    replace all occurrences of '[{' in json_str with |[ \{ { cl_abap_char_utilities=>newline }    |.
-    replace all occurrences of '}]' in json_str with |{ cl_abap_char_utilities=>newline } \} ] |.
-    replace all occurrences of '},{' in json_str with |{ cl_abap_char_utilities=>newline }  \},\{ { cl_abap_char_utilities=>newline }    |.
-
-  endmethod.
 
   method create_id.
-    data(id) = value zlso_log_trace-id( ).
+    try.
+        " Number range created by the /EDU/CL_TRCNR_CREATE class.
+        cl_numberrange_runtime=>number_get( exporting nr_range_nr = '01'
+                                                      object      = '/EDU/TRCNR'
+                                            importing number      = data(number) ).
+        id = number.
+      catch cx_nr_object_not_found cx_number_ranges.
+        clear id.
+    endtry.
 
-    call function 'NUMBER_GET_NEXT'
-      exporting
-        nr_range_nr             = '00'
-        object                  = 'ZLSO_TRCID'
-      importing
-        number                  = id
-      exceptions
-        interval_not_found      = 1
-        number_range_not_intern = 2
-        object_not_found        = 3
-        quantity_is_0           = 4
-        quantity_is_not_1       = 5
-        interval_overflow       = 6
-        buffer_overflow         = 7
-        others                  = 8.
-
-    if sy-subrc eq 0 and id is not initial.
-      next_id = |{ sy-sysid }{ id }|.
-    else.
+    if id is initial.
       try.
-          " Use uuid if no range is not working.
-          next_id = cl_system_uuid=>if_system_uuid_static~create_uuid_c22( ).
+          id = cl_system_uuid=>if_system_uuid_static~create_uuid_c32( ).
         catch cx_uuid_error.
-          wait up to 1 seconds.
-          retry.
       endtry.
     endif.
   endmethod.
@@ -203,6 +166,12 @@ class zcl_lso_log_trace implementation.
 
   method zif_lso_log_trace~get_response_payload.
     payload = me->response_payload.
+  endmethod.
+
+
+  method zif_lso_log_trace~get_object.
+    object = value #( id       = me->id
+                      instance = me ).
   endmethod.
 
 
@@ -257,136 +226,94 @@ class zcl_lso_log_trace implementation.
 
 
   method save_collection.
-    types begin of lty_s_payload.
-    types trace_id type zlso_log_payload-trace_id.
-    types type type zlso_log_payload-type.
-    types instance type ref to zcl_lso_log_payload.
-    types end of lty_s_payload.
+    data(db_traces) = value zif_lso_log_trace=>tt_traces( ).
+    data(payloads) = value zlso_tt_log_payloads( ).
+    data(headers) = value zlso_tt_log_headers( ).
 
-    types lty_t_payload type sorted table of lty_s_payload with unique key trace_id type.
+    loop at traces using key object_key reference into data(trace_object).
+      data(trace) = cast zcl_lso_log_trace( trace_object->instance ).
 
-    types begin of lty_s_headers.
-    types trace_id type zlso_log_headers-trace_id.
-    types type type zlso_log_headers-type.
-    types instance type ref to zcl_lso_log_headers.
-    types end of lty_s_headers.
-
-    types lty_t_headers type sorted table of lty_s_headers with unique key trace_id type.
-
-    data(lt_traces)  = value zif_lso_log_trace=>tt_traces( ).
-    data(lt_payload) = value lty_t_payload( ).
-    data(lt_headers) = value lty_t_headers( ).
-
-    data(iterator) = traces->get_iterator( ).
-
-    while iterator->has_next( ) eq abap_true.
-      data(trace) = cast zcl_lso_log_trace( iterator->get_next( ) ).
-
-      if trace->is_saved( ) eq abap_true.
+      if trace is not bound or trace->is_saved( ).
         continue.
       endif.
 
       if trace->zif_lso_log_trace~get_id( ) is initial.
         " No ID for trace object!
-        raise exception type zcx_lso_log
-          exporting
-            textid = zcx_lso_log=>no_trace_id.
+        raise exception type zcx_lso_log exporting textid = zcx_lso_log=>no_trace_id.
       endif.
 
       " Check if unique payload and header objects have been already added to table.
-      if not line_exists( lt_payload[ trace_id = trace->zif_lso_log_trace~get_id( ) ] ).
+      if not line_exists( payloads[ key object_key components trace_id = trace->zif_lso_log_trace~get_id( ) ] ).
         " No payload yet, add it to the table for saving.
         if trace->zif_lso_log_trace~has_request_payload( ).
           " Request...
-          insert value lty_s_payload( trace_id = trace->zif_lso_log_trace~get_id( )
-                                      type     = trace->zif_lso_log_trace~get_request_payload( )->get_type( )
-                                      instance = trace->zif_lso_log_trace~get_request_payload( ) )
-            into table lt_payload.
+          insert value #( trace_id = trace->zif_lso_log_trace~get_id( )
+                          type     = trace->zif_lso_log_trace~get_request_payload( )->get_type( )
+                          instance = trace->zif_lso_log_trace~get_request_payload( ) ) into table payloads.
         endif.
 
         if trace->zif_lso_log_trace~has_response_payload( ).
           " Response...
-          insert value lty_s_payload( trace_id = trace->zif_lso_log_trace~get_id( )
-                                      type     = trace->zif_lso_log_trace~get_response_payload( )->get_type( )
-                                      instance = trace->zif_lso_log_trace~get_response_payload( ) )
-            into table lt_payload.
+          insert value #( trace_id = trace->zif_lso_log_trace~get_id( )
+                          type     = trace->zif_lso_log_trace~get_response_payload( )->get_type( )
+                          instance = trace->zif_lso_log_trace~get_response_payload( ) ) into table payloads.
         endif.
       endif.
 
-      if not line_exists( lt_headers[ trace_id = trace->zif_lso_log_trace~get_id( ) ] ).
+      if not line_exists( headers[ key object_key components trace_id = trace->zif_lso_log_trace~get_id( ) ] ).
         " No headers yet, add it to the table for saving.
         if trace->zif_lso_log_trace~has_request_headers( ).
           " Request...
-          insert value lty_s_headers( trace_id = trace->zif_lso_log_trace~get_id( )
-                                      type     = trace->zif_lso_log_trace~get_request_headers( )->get_type( )
-                                      instance = trace->zif_lso_log_trace~get_request_headers( ) )
-            into table lt_headers.
+          insert value #( trace_id = trace->zif_lso_log_trace~get_id( )
+                          type     = trace->zif_lso_log_trace~get_request_headers( )->get_type( )
+                          instance = trace->zif_lso_log_trace~get_request_headers( ) ) into table headers.
         endif.
 
         if trace->zif_lso_log_trace~has_response_headers( ).
           " Response...
-          insert value lty_s_headers( trace_id = trace->zif_lso_log_trace~get_id( )
-                                      type     = trace->zif_lso_log_trace~get_response_headers( )->get_type( )
-                                      instance = trace->zif_lso_log_trace~get_response_headers( ) )
-            into table lt_headers.
+          insert value #( trace_id = trace->zif_lso_log_trace~get_id( )
+                          type     = trace->zif_lso_log_trace~get_response_headers( )->get_type( )
+                          instance = trace->zif_lso_log_trace~get_response_headers( ) ) into table headers.
         endif.
       endif.
 
       " Prepare trace data table for saving.
-      insert value zlso_log_trace( id             = trace->zif_lso_log_trace~get_id( )
-                                   http_status    = trace->zif_lso_log_trace~get_http_status( )
-                                   request_url    = trace->zif_lso_log_trace~get_request_url( )
-                                   request_method = trace->zif_lso_log_trace~get_request_method( )
-                                   stripped_date  = trace->zif_lso_log_trace~get_stripped_date( ) )
-        into table lt_traces.
-    endwhile.
+      insert value #( id             = trace->zif_lso_log_trace~get_id( )
+                      http_status    = trace->zif_lso_log_trace~get_http_status( )
+                      request_url    = trace->zif_lso_log_trace~get_request_url( )
+                      request_method = trace->zif_lso_log_trace~get_request_method( )
+                      stripped_date  = trace->zif_lso_log_trace~get_stripped_date( ) ) into table db_traces.
+    endloop.
 
     try.
-        if lt_payload[] is not initial.
-          data(lo_payloads) = new cl_object_collection( ).
-
-          loop at lt_payload assigning field-symbol(<ls_payload>).
-            lo_payloads->add( <ls_payload>-instance ).
-          endloop.
-
+        if payloads[] is not initial.
           " Save trace payload in DB.
-          zcl_lso_log_payload=>save_collection( lo_payloads ).
+          zcl_lso_log_payload=>save_collection( payloads ).
         endif.
 
-        if lt_headers[] is not initial.
-          data(lo_headers) = new cl_object_collection( ).
-
-          loop at lt_headers assigning field-symbol(<ls_headers>).
-            lo_headers->add( <ls_headers>-instance ).
-          endloop.
-
+        if headers[] is not initial.
           " Save trace payload in DB.
-          zcl_lso_log_headers=>save_collection( lo_headers ).
+          zcl_lso_log_headers=>save_collection( headers ).
         endif.
 
-        if lt_traces[] is not initial.
+        if db_traces[] is not initial.
           " Save traces in DB.
-          insert zlso_log_trace from table @lt_traces accepting duplicate keys.
+          insert zlso_log_trace from table @db_traces accepting duplicate keys.
         endif.
 
         result = boolc( sy-dbcnt > 0 ).
 
-        iterator = traces->get_iterator( ).
+        loop at traces using key object_key reference into trace_object.
+          trace = cast zcl_lso_log_trace( trace_object->instance ).
 
-        while iterator->has_next( ) eq abap_true.
-          trace = cast zcl_lso_log_trace( iterator->get_next( ) ).
-
-          if trace->zif_lso_log_trace~get_id( ) is initial.
-            trace->set_saved( abap_false ).
-          elseif trace->is_saved( ) eq abap_false.
-            trace->set_saved( result ).
-          endif.
-        endwhile.
+          trace->set_saved( cond #( when trace->zif_lso_log_trace~get_id( ) is initial then abap_false
+                                    else result ) ).
+        endloop.
 
         if with_commit eq abap_true.
           commit work.
         endif.
-      catch cx_sy_open_sql_db into data(lo_cx_sql).
+      catch cx_sy_open_sql_db into data(cx_sql).
         if with_commit eq abap_true.
           rollback work.
         endif.
@@ -396,7 +323,7 @@ class zcl_lso_log_trace implementation.
           exporting
             textid            = zcx_lso_log=>save_error
             mv_msgv1          = 'ZLSO_LOG_TRACE'
-            mv_exception_text = lo_cx_sql->get_text( ).
+            mv_exception_text = cx_sql->get_text( ).
     endtry.
   endmethod.
 

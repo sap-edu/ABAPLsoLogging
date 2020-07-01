@@ -9,16 +9,15 @@ class zcl_lso_log_utils definition
       importing
         !iv_tstmp type timestampl
       exporting
-        !ev_date  type dats
-        !ev_time  type tims
+        !ev_date  type datn
+        !ev_time  type timn
       raising
         cx_parameter_invalid_type
         cx_parameter_invalid_range .
 
     class-methods show_message_in_code
-      importing
-        !iv_class  type rsdag-arbgb default 'ZLSO_TASK'
-        !iv_number type t100-msgnr  default '036'.
+      importing iv_class  type symsgid default 'ZLSO_TASK'
+                iv_number type symsgno default '036'.
 
   protected section.
   private section.

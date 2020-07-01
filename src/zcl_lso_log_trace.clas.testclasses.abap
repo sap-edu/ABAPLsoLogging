@@ -3,7 +3,7 @@ class zcl_lso_log_trace definition local friends ltc_lso_log_trace.
 
 class ltc_lso_log_trace definition for testing
   duration short
-  inheriting from zcl_lso_log_unit
+  inheriting from zcu_lso_log
   risk level harmless
   final.
 
@@ -14,7 +14,7 @@ class ltc_lso_log_trace definition for testing
 
     class-data id_counter type i.
 
-    data cut type ref to zcl_lso_log_trace.  "class under test
+    data cut type ref to zcl_lso_log_trace.
 
     class-methods class_setup.
     class-methods class_teardown.
@@ -29,14 +29,14 @@ class ltc_lso_log_trace definition for testing
     methods get_request_method for testing.
     methods get_request_url for testing.
     methods get_stripped_date for testing.
+    methods get_object for testing.
     methods has_payload for testing.
     methods has_request_payload for testing.
     methods has_response_payload for testing.
     methods has_request_headers for testing.
     methods has_response_headers for testing.
     methods is_stripped for testing.
-    methods save_collection for testing raising zcx_lso_log.
-    methods conv_table_to_json for testing.
+    methods save_collection for testing raising cx_static_check.
 
     methods get_next_id
       returning value(id) type zlso_log_trace-id.
@@ -61,6 +61,8 @@ class ltc_lso_log_trace implementation.
     me->cut = me->create_trace( id               = c_trace-id
                                 request_payload  = '{ "request":"payload" }'
                                 response_payload = '{ "response":"payload" }' ).
+
+    cl_abap_unit_assert=>assert_bound( me->cut ).
   endmethod.
 
 
@@ -105,9 +107,10 @@ class ltc_lso_log_trace implementation.
 
 
   method get_stripped_date.
-    me->cut->set_stripped_date( sy-datum ).
+    me->cut->set_stripped_date( cl_abap_context_info=>get_system_date( ) ).
 
-    cl_abap_unit_assert=>assert_equals( act = me->cut->zif_lso_log_trace~get_stripped_date( ) exp = sy-datum ).
+    cl_abap_unit_assert=>assert_equals( act = me->cut->zif_lso_log_trace~get_stripped_date( )
+                                        exp = cl_abap_context_info=>get_system_date( ) ).
   endmethod.
 
 
@@ -137,22 +140,20 @@ class ltc_lso_log_trace implementation.
 
 
   method is_stripped.
-    me->cut->set_stripped_date( sy-datum ).
+    me->cut->set_stripped_date( cl_abap_context_info=>get_system_date( ) ).
 
     cl_abap_unit_assert=>assert_true( me->cut->zif_lso_log_trace~is_stripped( ) ).
   endmethod.
 
 
   method save_collection.
-    data(traces) = new cl_object_collection( ).
-
-    traces->add( me->cut ).
-    traces->add( me->create_trace( id = me->get_next_id( ) ) ).
-    traces->add( new zcl_lso_log_trace( request_url      = conv #( c_trace_data-request_url )
-                                        request_method   = conv #( c_trace_data-request_method )
-                                        http_status      = conv #( c_trace_data-http_status )
-                                        request_payload  = 'Id will be generated automatically!'
-                                        response_payload = 'Is it ok?' ) ).
+    data(traces) = value zlso_tt_log_traces( ( me->cut->get_object( ) )
+                                             ( me->create_trace( me->get_next_id( ) )->get_object( ) )
+                                             ( new zcl_lso_log_trace( request_url      = conv #( c_trace_data-request_url )
+                                                                      request_method   = conv #( c_trace_data-request_method )
+                                                                      http_status      = conv #( c_trace_data-http_status )
+                                                                      request_payload  = 'Id will be generated automatically!'
+                                                                      response_payload = 'Is it ok?' )->get_object( ) ) ).
 
     " Add traces object to be tear down then after test.
     me->add_traces_to_teardown( traces ).
@@ -162,50 +163,12 @@ class ltc_lso_log_trace implementation.
     " Were traces saved properly?
     cl_abap_unit_assert=>assert_true( result ).
 
-    data(iterator) = traces->get_iterator( ).
+    loop at traces using key object_key reference into data(object).
+      data(trace) = cast zcl_lso_log_trace( object->instance ).
 
-    " Check if all trace objects are marked as 'saved'.
-    while iterator->has_next( ) eq abap_true.
-      data(trace) = cast zcl_lso_log_trace( iterator->get_next( ) ).
-
+      " Check if all trace objects are marked as 'saved'.
       cl_abap_unit_assert=>assert_true( trace->is_saved( ) ).
-    endwhile.
-  endmethod.
-
-
-  method conv_table_to_json.
-
-    types: begin of ts_banana,
-             color type string,
-             size  type string,
-             taste type string,
-           end of ts_banana.
-    types: tt_bananas type standard table of ts_banana with default key.
-
-    data(bananas) = value tt_bananas( ( color = |yellow| size = |big| taste = |yummy| )
-                                      ( color = |brown|  size = |big| taste = |urghh| ) ).
-
-    data(json_str) = zcl_lso_log_trace=>conv_table_to_json( input_tab = bananas ).
-    cl_abap_unit_assert=>assert_not_initial( act = json_str ).
-
-    data(banana) = value ts_banana( color = |yellow| size = |big| taste = |yummy| ).
-
-    json_str = zcl_lso_log_trace=>conv_table_to_json( input_tab = value #( base bananas ( banana ) ) ).
-    cl_abap_unit_assert=>assert_not_initial( act = json_str ).
-
-    types: begin of ts_banana_container,
-             box1 type tt_bananas,
-             box2 type tt_bananas,
-           end of ts_banana_container.
-    types: tt_banana_containers type standard table of ts_banana_container with default key.
-    data(banana_containers) = value tt_banana_containers( ).
-
-    data(banana_container) = value ts_banana_container( box1 = bananas
-                                                        box2 = bananas ).
-
-    json_str = zcl_lso_log_trace=>conv_table_to_json( input_tab = value #( base banana_containers ( banana_container ) ) ).
-    cl_abap_unit_assert=>assert_not_initial( act = json_str ).
-
+    endloop.
   endmethod.
 
 
@@ -218,8 +181,14 @@ class ltc_lso_log_trace implementation.
 
 
   method assert_id.
-    " Is generated id matches the pattern: ILDNNNNNNNNNN?
-    cl_abap_unit_assert=>assert_text_matches( pattern = |^{ sy-sysid }\\d+$| text = id ).
+    " Is generated id matches the pattern: NNNNNNNNNN?
+    cl_abap_unit_assert=>assert_text_matches( pattern = |^\\d+$| text = id ).
+  endmethod.
+
+
+  method get_object.
+    cl_abap_unit_assert=>assert_equals( act = me->cut->get_object( ) exp = value zlso_s_log_trace( id       = me->cut->id
+                                                                                                   instance = me->cut ) ).
   endmethod.
 
 endclass.

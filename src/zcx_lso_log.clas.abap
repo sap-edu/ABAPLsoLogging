@@ -118,24 +118,21 @@ class zcx_lso_log definition
         !mv_msgv4          type string optional
         !mv_exception_text type string optional
         severity           type zif_lso_cx=>ty_severity optional.
+
   protected section.
   private section.
 endclass.
 
 
-
 class zcx_lso_log implementation.
 
-
-  method constructor ##ADT_SUPPRESS_GENERATION.
-    call method super->constructor
-      exporting
-        previous = previous
-        mv_msgv1 = mv_msgv1
-        mv_msgv2 = mv_msgv2
-        mv_msgv3 = mv_msgv3
-        mv_msgv4 = mv_msgv4
-        severity = severity.
+  method constructor  ##ADT_SUPPRESS_GENERATION.
+    super->constructor( previous = previous
+                        mv_msgv1 = mv_msgv1
+                        mv_msgv2 = mv_msgv2
+                        mv_msgv3 = mv_msgv3
+                        mv_msgv4 = mv_msgv4
+                        severity = severity ).
 
     me->mv_exception_text = mv_exception_text .
 
@@ -146,4 +143,5 @@ class zcx_lso_log implementation.
       if_t100_message~t100key = textid.
     endif.
   endmethod.
+
 endclass.

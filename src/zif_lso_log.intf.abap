@@ -4,18 +4,18 @@ interface zif_lso_log
 
   aliases add_message for zif_lso_log_abstract~add_message.
 
-  constants c_langu_english type sy-langu value 'E'.
-  constants c_time_zone_utc type ttzz-tzone value 'UTC'.
+  constants c_langu_english type cl_abap_context_info=>ty_language_key value 'E'.
+  constants c_time_zone_utc type cl_abap_context_info=>ty_time_zone value 'UTC'.
 
   constants begin of c_mode.
-  constants dialog      type balmode value 'D'.
-  constants batch       type balmode value 'B'.
-  constants batch_input type balmode value 'I'.
+  constants dialog      type zlso_d_log_mode value 'D'.
+  constants batch       type zlso_d_log_mode value 'B'.
+  constants batch_input type zlso_d_log_mode value 'I'.
   constants end of c_mode .
 
   constants begin of c_time.
-  constants min type tims value '000000'.
-  constants max type tims value '235959'.
+  constants min type timn value '000000'.
+  constants max type timn value '235959'.
   constants end of c_time .
 
   " Keep range helpers in the log interface to keep the package transportable.
@@ -32,18 +32,6 @@ interface zif_lso_log
   constants exclude type ddsign value 'E'.
   constants end of c_sign .
 
-  types begin of ts_key.
-  types id type zlso_log-id.
-  types seqnr type zlso_log-seqnr.
-  types end of ts_key.
-
-  types begin of ts_object.
-  include type ts_key.
-  types instance type ref to zif_lso_log.
-  types end of ts_object.
-
-  types tt_objects type hashed table of ts_object with unique key primary_key components id seqnr.
-
   "! <p class="shorttext synchronized" lang="en">Add message</p>
   "! <strong>OBSOLETE</strong> - backward compatibility, it's been replaced with ZIF_LSO_LOG_ABSTRACT~ADD_MESSAGE!
   "! @parameter message | <p class="shorttext synchronized" lang="en"></p>
@@ -54,11 +42,11 @@ interface zif_lso_log
   "!
   "! @parameter ref_log | <p class="shorttext synchronized" lang="en"></p>
   methods add_ref_log
-    importing ref_log type ref to zcl_lso_log.
+    importing ref_log type ref to zif_lso_log.
 
   "! <p class="shorttext synchronized" lang="en">Get log id</p>
   "!
-  "! @parameter log_id | <p class="shorttext synchronized" lang="en"></p>
+  "! @parameter id | <p class="shorttext synchronized" lang="en"></p>
   methods get_id
     returning value(id) type zlso_log-id .
 
@@ -108,7 +96,7 @@ interface zif_lso_log
   "!
   "! @parameter object | <p class="shorttext synchronized" lang="en"></p>
   methods get_object
-    returning value(object) type ts_object.
+    returning value(object) type zlso_s_log.
 
   "! <p class="shorttext synchronized" lang="en">Get messages collection</p>
   "!
@@ -116,13 +104,13 @@ interface zif_lso_log
   "! @parameter messages | <p class="shorttext synchronized" lang="en"></p>
   methods get_messages
     importing with_ref        type abap_bool default abap_false
-    returning value(messages) type ref to if_object_collection .
+    returning value(messages) type zlso_tt_log_messages.
 
   "! <p class="shorttext synchronized" lang="en">Get reference logs collection</p>
   "!
   "! @parameter logs | <p class="shorttext synchronized" lang="en"></p>
   methods get_ref_logs
-    returning value(logs) type ref to cl_object_collection .
+    returning value(logs) type zlso_tt_logs.
 
   "! <p class="shorttext synchronized" lang="en">Get the date when log was stripped of messages</p>
   "!
@@ -164,16 +152,16 @@ interface zif_lso_log
   "! @parameter with_ref | <p class="shorttext synchronized" lang="en">Check reference log?</p>
   "! @parameter result | <p class="shorttext synchronized" lang="en"></p>
   methods has_message_type
-    importing type          type msgty
+    importing type          type symsgty
               with_ref      type abap_bool default abap_true
     returning value(result) type abap_bool .
 
   "! <p class="shorttext synchronized" lang="en">Has log got a particular reference log?</p>
   "!
   "! @parameter log | <p class="shorttext synchronized" lang="en"></p>
-  "! @parameter rv_result | <p class="shorttext synchronized" lang="en"></p>
+  "! @parameter result | <p class="shorttext synchronized" lang="en"></p>
   methods has_ref_log
-    importing log           type ref to zcl_lso_log
+    importing log           type ref to zif_lso_log
     returning value(result) type abap_bool .
 
   "! <p class="shorttext synchronized" lang="en">Has log got reference logs?</p>
@@ -192,11 +180,14 @@ interface zif_lso_log
   "!
   "! @parameter result | <p class="shorttext synchronized" lang="en"></p>
   methods lock
-    returning value(result) type abap_bool.
+    returning value(result) type abap_bool
+    raising   cx_abap_foreign_lock
+              cx_abap_lock_failure.
 
   "! <p class="shorttext synchronized" lang="en">Unlock the log</p>
   "!
-  methods unlock .
+  methods unlock
+    raising cx_abap_lock_failure.
 
   "! <p class="shorttext synchronized" lang="en">Save log run</p>
   "! Next sequence number will be generated.

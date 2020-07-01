@@ -16,11 +16,11 @@ interface zif_lso_log_abstract
   methods add_message
     importing message type ref to zcl_lso_log_message .
 
-  "! <p class="shorttext synchronized" lang="en">Add collection of messages</p>
+  "! <p class="shorttext synchronized" lang="en">Add messages</p>
   "!
   "! @parameter messages | <p class="shorttext synchronized" lang="en"></p>
   methods add_messages
-    importing messages type ref to if_object_collection .
+    importing messages type zlso_tt_log_messages.
 
   "! <p class="shorttext synchronized" lang="en">Add message from structure</p>
   "!
@@ -41,7 +41,7 @@ interface zif_lso_log_abstract
   "! @parameter trace | <p class="shorttext synchronized" lang="en"></p>
   "! @parameter message | <p class="shorttext synchronized" lang="en"></p>
   methods error
-    importing msgid          type msgid
+    importing msgid          type symsgid
               msgno          type symsgno
               msgv1          type string optional
               msgv2          type string optional
@@ -61,7 +61,7 @@ interface zif_lso_log_abstract
   "! @parameter trace | <p class="shorttext synchronized" lang="en"></p>
   "! @parameter message | <p class="shorttext synchronized" lang="en"></p>
   methods info
-    importing msgid          type msgid
+    importing msgid          type symsgid
               msgno          type symsgno
               msgv1          type string optional
               msgv2          type string optional
@@ -81,7 +81,7 @@ interface zif_lso_log_abstract
   "! @parameter trace | <p class="shorttext synchronized" lang="en"></p>
   "! @parameter message | <p class="shorttext synchronized" lang="en"></p>
   methods success
-    importing msgid          type msgid
+    importing msgid          type symsgid
               msgno          type symsgno
               msgv1          type string optional
               msgv2          type string optional
@@ -101,7 +101,7 @@ interface zif_lso_log_abstract
   "! @parameter trace | <p class="shorttext synchronized" lang="en"></p>
   "! @parameter message | <p class="shorttext synchronized" lang="en"></p>
   methods warning
-    importing msgid          type msgid
+    importing msgid          type symsgid
               msgno          type symsgno
               msgv1          type string optional
               msgv2          type string optional
@@ -121,7 +121,7 @@ interface zif_lso_log_abstract
   "! @parameter trace | <p class="shorttext synchronized" lang="en"></p>
   "! @parameter message | <p class="shorttext synchronized" lang="en"></p>
   methods abort
-    importing msgid          type msgid
+    importing msgid          type symsgid
               msgno          type symsgno
               msgv1          type string optional
               msgv2          type string optional
@@ -142,8 +142,8 @@ interface zif_lso_log_abstract
   "! @parameter trace | <p class="shorttext synchronized" lang="en"></p>
   "! @parameter message | <p class="shorttext synchronized" lang="en"></p>
   methods message
-    importing msgty          type msgty
-              msgid          type msgid
+    importing msgty          type symsgty
+              msgid          type symsgid
               msgno          type symsgno
               msgv1          type string optional
               msgv2          type string optional
@@ -188,7 +188,7 @@ interface zif_lso_log_abstract
     importing type            type zlso_log_message-msgty optional
               clone           type abap_bool default abap_false
                 preferred parameter type
-    returning value(messages) type ref to if_object_collection .
+    returning value(messages) type zlso_tt_log_messages.
 
   "! <p class="shorttext synchronized" lang="en">Get messages for RFC</p>
   "!
@@ -202,7 +202,7 @@ interface zif_lso_log_abstract
   "!
   "! @parameter symsgs | <p class="shorttext synchronized" lang="en"></p>
   methods get_symsgs
-    returning value(symsgs) type hrpadfr_symsg .
+    returning value(symsgs) type zlso_tt_log_symsg .
 
   "! <p class="shorttext synchronized" lang="en">Get programm</p>
   "!
@@ -270,7 +270,7 @@ interface zif_lso_log_abstract
   "! <p class="shorttext synchronized" lang="en">Has log got a message of type?</p>
   "!
   "! @parameter type | <p class="shorttext synchronized" lang="en"></p>
-  "! @parameter rv_result | <p class="shorttext synchronized" lang="en"></p>
+  "! @parameter result | <p class="shorttext synchronized" lang="en"></p>
   methods has_message_type
     importing type          type zlso_log_message-msgty            " YYYYMMDDhhmmssmmmuuun
               after         type zlso_log_message-timestamp default zif_lso_log_range=>c_timestampl-min
@@ -304,12 +304,4 @@ interface zif_lso_log_abstract
   methods set_tcode
     importing tcode type zlso_log-tcode .
 
-  "! <p class="shorttext synchronized" lang="en">Display popup with messages (GUI)</p>
-  "!
-  "! @parameter title | <p class="shorttext synchronized" lang="en"></p>
-  "! @parameter type | <p class="shorttext synchronized" lang="en">Only messages with type</p>
-  methods display_messages_popup
-    importing title type char70 optional
-              type  type zlso_log_message-msgty optional
-                preferred parameter title.
 endinterface.

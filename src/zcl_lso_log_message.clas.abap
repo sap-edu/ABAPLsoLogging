@@ -8,6 +8,8 @@ class zcl_lso_log_message definition
   public section.
     interfaces zif_lso_log_message.
 
+    constants lock_object type if_abap_lock_object=>tv_name value '/EDU/ELOG_MSG'.
+
     " Backwards compatibility
     aliases get_data for zif_lso_log_message~get_data.
     aliases get_date for zif_lso_log_message~get_date.
@@ -24,6 +26,7 @@ class zcl_lso_log_message definition
     aliases get_class for zif_lso_log_message~get_class.
     aliases get_number for zif_lso_log_message~get_number.
     aliases get_abap_stack for zif_lso_log_message~get_abap_stack.
+    aliases get_object for zif_lso_log_message~get_object.
     aliases has_trace for zif_lso_log_message~has_trace.
     aliases is_error for zif_lso_log_message~is_error.
     aliases is_info for zif_lso_log_message~is_info.
@@ -36,28 +39,27 @@ class zcl_lso_log_message definition
     aliases get_stripped_date for zif_lso_log_message~get_stripped_date.
     aliases is_stripped for zif_lso_log_message~is_stripped.
     aliases split for zif_lso_log_message~split.
-    aliases clone for if_os_clone~clone.
+    aliases clone for zif_lso_clone~clone.
 
     class-methods save_collection
       importing log_id        type zlso_log_message-log_id
                 log_seqnr     type zlso_log_message-log_seqnr
-                messages      type ref to if_object_collection
+                messages      type zlso_tt_log_messages
                 with_commit   type abap_bool default abap_false
       returning value(result) type abap_bool
-      raising   zcx_lso_log .
+      raising   zcx_lso_log.
 
     methods constructor
-      importing msgid type msgid
+      importing msgid type symsgid
                 msgno type symsgno
-                msgty type msgty
+                msgty type symsgty
                 msgv1 type string                   optional
                 msgv2 type string                   optional
                 msgv3 type string                   optional
                 msgv4 type string                   optional
-                trace type ref to zcl_lso_log_trace optional .
+                trace type ref to zif_lso_log_trace optional .
 
   protected section.
-
   private section.
     types tt_messages type sorted table of zlso_log_message with unique key log_id log_seqnr timestamp .
 
@@ -65,24 +67,25 @@ class zcl_lso_log_message definition
 
     data log_id type zlso_log_message-log_id .
     data log_seqnr type zlso_log_message-log_seqnr .
-    data date type datum .
-    data time type tims .
+    data date type datn .
+    data time type timn .
     data timestamp type timestampl .
     data symsg type symsg .
     data text type string .
     data data type ref to data .
-    data trace type ref to zcl_lso_log_trace .
+    data trace type ref to zif_lso_log_trace .
     data abap_stack type zif_lso_log_message=>ts_abap_stack.
     data stripped_date type zlso_log_message-stripped_date.
 
     class-methods lock
-      importing log_id        type zlso_log_message-log_id
-                log_seqnr     type zlso_log_message-log_seqnr
-      returning value(result) type abap_bool .
+      importing log_id    type zlso_log_message-log_id
+                log_seqnr type zlso_log_message-log_seqnr
+      raising   cx_abap_foreign_lock cx_abap_lock_failure.
 
     class-methods unlock
       importing log_id    type zlso_log_message-log_id
-                log_seqnr type zlso_log_message-log_seqnr .
+                log_seqnr type zlso_log_message-log_seqnr
+      raising   cx_abap_lock_failure .
 
     methods split_msgv
       importing msgv  type string
@@ -174,8 +177,8 @@ class zcl_lso_log_message implementation.
                                                            ev_time  = me->time ).
       catch cx_parameter_invalid_type
             cx_parameter_invalid_range.
-        me->date = sy-datum.
-        me->time = sy-uzeit.
+        me->date = cl_abap_context_info=>get_system_date( ).
+        me->time = cl_abap_context_info=>get_system_time( ).
     endtry.
   endmethod.
 
@@ -211,14 +214,14 @@ class zcl_lso_log_message implementation.
 
 
   method zif_lso_log_message~get_request_payload.
-    if me->trace is bound and me->trace->zif_lso_log_trace~has_request_payload( ).
+    if me->trace is bound and me->trace->has_request_payload( ).
       request_payload = me->trace->get_request_payload( )->get_payload( ).
     endif.
   endmethod.
 
 
   method zif_lso_log_message~get_response_payload.
-    if me->trace is bound and me->trace->zif_lso_log_trace~has_response_payload( ).
+    if me->trace is bound and me->trace->has_response_payload( ).
       response_payload = me->trace->get_response_payload( )->get_payload( ).
     endif.
   endmethod.
@@ -236,14 +239,8 @@ class zcl_lso_log_message implementation.
 
   method zif_lso_log_message~get_text.
     if me->text is initial.
-      data(t100_message) = new cl_t100_message( the_msg_class  = me->symsg-msgid
-                                                the_msg_number = me->symsg-msgno ).
-
-      t100_message->set_substitution_table( value name2value_table( ( name = cl_t100_message=>msgv1_name value = me->symsg-msgv1 )
-                                                                    ( name = cl_t100_message=>msgv2_name value = me->symsg-msgv2 )
-                                                                    ( name = cl_t100_message=>msgv3_name value = me->symsg-msgv3 )
-                                                                    ( name = cl_t100_message=>msgv4_name value = me->symsg-msgv4 ) ) ).
-      me->text = t100_message->if_message~get_text( ).
+      message id me->symsg-msgid type me->symsg-msgty number me->symsg-msgno into me->text
+            with me->symsg-msgv1 me->symsg-msgv2 me->symsg-msgv3 me->symsg-msgv4.
     endif.
 
     text = me->text.
@@ -272,6 +269,14 @@ class zcl_lso_log_message implementation.
 
   method zif_lso_log_message~get_abap_stack.
     abap_stack = me->abap_stack.
+  endmethod.
+
+
+  method zif_lso_log_message~get_object.
+    object = value #( log_id    = me->log_id
+                      log_seqnr = me->log_seqnr
+                      timestamp = me->timestamp
+                      instance  = me ).
   endmethod.
 
 
@@ -326,6 +331,7 @@ class zcl_lso_log_message implementation.
 
 
   method setup_abap_stack.
+    ##TODO " ABAP Stack is not permitted!
     data(stack) = new zcl_lso_abap_stack( )->zif_lso_abap_stack~before_pattern( '*CL_LSO_LOG*' ).
 
     me->set_abap_stack( value #( abap_program     = stack-progname
@@ -374,23 +380,20 @@ class zcl_lso_log_message implementation.
   method split_msgv.
     constants c_msgv_len type i value 50.
 
-    data: lv_len        type                   i,
-          lv_len1       type                   i,
-          lv_len2       type                   i,
-          lv_len3       type                   i,
-          lv_len4       type                   i,
-          lv_sum1       type                   i,
-          lv_sum2       type                   i,
-          lv_sum3       type                   i,
-          lv_sum4       type                   i,
-          lv_msgv1_full type                   abap_bool,
-          lv_msgv2_full type                   abap_bool,
-          lv_msgv3_full type                   abap_bool,
-          lv_msgv4_full type                   abap_bool,
-          lt_msgv       type standard table of symsgv,
-          lv_msgv       type                   symsgv.
-
-    data lv_text type text1024.
+    data: lv_len        type  i,
+          lv_len1       type  i,
+          lv_len2       type  i,
+          lv_len3       type  i,
+          lv_len4       type  i,
+          lv_sum1       type  i,
+          lv_sum2       type  i,
+          lv_sum3       type  i,
+          lv_sum4       type  i,
+          lv_msgv1_full type  abap_bool,
+          lv_msgv2_full type  abap_bool,
+          lv_msgv3_full type  abap_bool,
+          lv_msgv4_full type  abap_bool,
+          lv_msgv       type  symsgv.
 
     lv_len = strlen( msgv ).
 
@@ -398,20 +401,10 @@ class zcl_lso_log_message implementation.
       return.
     endif.
 
-    " Length of domain MSGV1 is 50 chars, to present longer message there's a need to split string into four parts.
-    lv_text = msgv.
+    data(strings) = new zcl_string_splitter( c_msgv_len )->split( msgv ).
 
-    call function 'SPLIT_LINE'
-      exporting
-        text       = lv_text
-        len        = strlen( lv_text )
-        maxlen     = c_msgv_len
-        sep_before = '/([{'
-      tables
-        result_tab = lt_msgv.
-
-    loop at lt_msgv into lv_msgv.
-      lv_len = strlen( lv_msgv ).
+    loop at strings into lv_msgv.
+      lv_len  = strlen( lv_msgv ).
       lv_len1 = strlen( msgv1 ).
       lv_len2 = strlen( msgv2 ).
       lv_len3 = strlen( msgv3 ).
@@ -471,52 +464,27 @@ class zcl_lso_log_message implementation.
   endmethod.
 
 
-  method lock.
-    " Lock log messages table against potential modifications for given log id/log seqnr.
-    call function 'ENQUEUE_EZLSO_LOG_MSG'
-      exporting
-        log_id         = log_id
-        log_seqnr      = log_seqnr
-      exceptions
-        foreign_lock   = 1
-        system_failure = 2
-        others         = 3.
-
-    result = boolc( sy-subrc eq 0 ).
-  endmethod.
-
-
   method save_collection.
-    " Lock messages table for given log id/log seqnr.
-    if not zcl_lso_log_message=>lock( log_id    = log_id
-                                      log_seqnr = log_seqnr ).
-
-      wait up to 1 seconds.
-
-      " Try to lock again...
-      if not zcl_lso_log_message=>lock( log_id    = log_id
-                                        log_seqnr = log_seqnr ).
+    try.
+        " Lock messages table for given log id/log seqnr.
+        zcl_lso_log_message=>lock( log_id    = log_id
+                                   log_seqnr = log_seqnr ).
+      catch cx_abap_foreign_lock cx_abap_lock_failure.
         " Log Message table is locked - raise an exception!
         raise exception type zcx_lso_log
           exporting
             textid   = zcx_lso_log=>lock_error
             mv_msgv1 = |ZLSO_LOG_MESSAGE table { log_id }/{ log_seqnr }|.
-      endif.
-    endif.
+    endtry.
 
     data(db_messages) = value tt_messages( ).
-    data(traces_map) = new zcl_lso_object_map( ).
+    data(traces) = value zlso_tt_log_traces( ).
 
-    data(iterator) = messages->get_iterator( ).
+    loop at messages using key object_key reference into data(message_object).
+      " Prepare messages data for saving.
+      data(message) = cast zcl_lso_log_message( message_object->instance ).
 
-    " Prepare messages data for saving.
-    while iterator->has_next( ).
-      data(message) = cast zcl_lso_log_message( iterator->get_next( ) ).
-
-      if message->zif_lso_log_message~get_log_id( ) is not initial and
-         message->zif_lso_log_message~get_log_id( ) eq log_id and
-         message->zif_lso_log_message~get_log_seqnr( ) is not initial and
-         message->zif_lso_log_message~get_log_seqnr( ) ne log_seqnr.
+      if message->zif_lso_log_message~get_log_id( ) eq log_id and message->zif_lso_log_message~get_log_seqnr( ) ne log_seqnr.
         " Message is not related to this particular log run, it will not be saved.
         continue.
       endif.
@@ -527,10 +495,9 @@ class zcl_lso_log_message implementation.
         trace_id = message->zif_lso_log_message~get_trace( )->get_id( ).
 
         " Check if given trace object has been already added to the map?
-        if not traces_map->if_object_map~contains_key( trace_id ).
+        if not line_exists( traces[ key object_key components id = trace_id ] ).
           " No trace yet, add it to the map. It should contain only unique traces objects.
-          traces_map->put( key   = trace_id
-                           value = message->zif_lso_log_message~get_trace( ) ).
+          insert message->zif_lso_log_message~get_trace( )->get_object( ) into table traces.
         endif.
       endif.
 
@@ -576,8 +543,7 @@ class zcl_lso_log_message implementation.
                 cx_parameter_invalid_type.
             try.
                 message->timestamp = cl_abap_tstmp=>normalize( message->timestamp ).
-              catch cx_parameter_invalid_range
-                    cx_parameter_invalid_type . "##NO_HANDLER
+              catch cx_parameter_invalid_range cx_parameter_invalid_type.
             endtry.
 
             retry.
@@ -592,7 +558,7 @@ class zcl_lso_log_message implementation.
         " Set INSERT result into local variable so that it can be checked in WHILE loop.
         subrc = sy-subrc.
       endwhile.
-    endwhile.
+    endloop.
 
     try.
         if db_messages[] is not initial.
@@ -602,9 +568,9 @@ class zcl_lso_log_message implementation.
 
         result = boolc( sy-dbcnt > 0 ).
 
-        if result eq abap_true and traces_map->is_empty( ) eq abap_false.
+        if result eq abap_true and traces[] is not initial.
           " Save traces data.
-          zcl_lso_log_trace=>save_collection( traces_map->get_values( ) ).
+          zcl_lso_log_trace=>save_collection( traces ).
         endif.
 
         if with_commit eq abap_true.
@@ -615,9 +581,12 @@ class zcl_lso_log_message implementation.
           rollback work.
         endif.
 
-        " Unlock messages table for given log id/log seqnr.
-        zcl_lso_log_message=>unlock( log_id    = log_id
-                                     log_seqnr = log_seqnr ).
+        try.
+            " Unlock messages table for given log id/seqnr.
+            zcl_lso_log_message=>unlock( log_id    = log_id
+                                         log_seqnr = log_seqnr ).
+          catch cx_abap_lock_failure.
+        endtry.
 
         " Save problem, raise an exception.
         raise exception type zcx_lso_log
@@ -627,17 +596,32 @@ class zcl_lso_log_message implementation.
             mv_exception_text = lo_cx_sql->get_text( ).
     endtry.
 
-    " Unlock messages table for given log id/log seqnr.
-    zcl_lso_log_message=>unlock( log_id    = log_id
-                                 log_seqnr = log_seqnr ).
+
+    try.
+        " Unlock messages table for given log id/seqnr.
+        zcl_lso_log_message=>unlock( log_id    = log_id
+                                     log_seqnr = log_seqnr ).
+      catch cx_abap_lock_failure.
+    endtry.
+  endmethod.
+
+
+  method lock.
+    data(lock) = cl_abap_lock_object_factory=>get_instance( lock_object ).
+
+    " Lock log messages table against potential modifications for given log id/log seqnr.
+    lock->enqueue( it_parameter = value #( ( name = 'LOG_ID'    value = ref #( log_id ) )
+                                           ( name = 'LOG_SEQNR' value = ref #( log_seqnr ) ) )
+                   _wait        = if_abap_lock_object=>cs_wait-yes ).
   endmethod.
 
 
   method unlock.
-    call function 'DEQUEUE_EZLSO_LOG_MSG'
-      exporting
-        log_id    = log_id
-        log_seqnr = log_seqnr.
+    data(lock) = cl_abap_lock_object_factory=>get_instance( lock_object ).
+
+    " Unlock log messages table for further modifications.
+    lock->dequeue( it_parameter = value #( ( name = 'LOG_ID'    value = ref #( log_id ) )
+                                           ( name = 'LOG_SEQNR' value = ref #( log_seqnr ) ) ) ).
   endmethod.
 
 
@@ -650,8 +634,8 @@ class zcl_lso_log_message implementation.
   endmethod.
 
 
-  method if_os_clone~clone.
-    result = new zcl_lso_log_message( msgid = me->symsg-msgid
+  method zif_lso_clone~clone.
+    object = new zcl_lso_log_message( msgid = me->symsg-msgid
                                       msgno = me->symsg-msgno
                                       msgty = me->symsg-msgty
                                       msgv1 = conv #( me->symsg-msgv1 )
@@ -660,7 +644,7 @@ class zcl_lso_log_message implementation.
                                       msgv4 = conv #( me->symsg-msgv4 )
                                       trace = me->trace ).
 
-    cast zcl_lso_log_message( result )->set_timestamp( me->get_timestamp( ) ).
+    cast zcl_lso_log_message( object )->set_timestamp( me->get_timestamp( ) ).
   endmethod.
 
 endclass.

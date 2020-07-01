@@ -2,7 +2,7 @@ class ltc_lso_log_message definition deferred.
 class zcl_lso_log_message definition local friends ltc_lso_log_message.
 
 class ltc_lso_log_message definition for testing
-  inheriting from zcl_lso_log_unit
+  inheriting from zcu_lso_log
   duration short
   risk level harmless.
 
@@ -25,7 +25,6 @@ class ltc_lso_log_message definition for testing
     methods setup.
     methods teardown.
 
-    methods save_collection for testing raising zcx_lso_log.
     methods get_class for testing.
     methods get_date for testing.
     methods get_symsg for testing.
@@ -39,6 +38,7 @@ class ltc_lso_log_message definition for testing
     methods get_type for testing.
     methods get_stripped_date for testing.
     methods get_abap_stack for testing.
+    methods get_object for testing.
     methods has_trace for testing.
     methods is_error for testing.
     methods is_info for testing.
@@ -49,7 +49,8 @@ class ltc_lso_log_message definition for testing
     methods split_msgv for testing.
     methods set_trace for testing.
     methods clone for testing.
-
+    methods save_collection for testing raising cx_static_check.
+    methods lock_exception for testing.
 endclass.
 
 
@@ -58,8 +59,10 @@ class ltc_lso_log_message implementation.
   method class_setup.
   endmethod.
 
+
   method class_teardown.
   endmethod.
+
 
   method setup.
     me->trace = me->create_trace( request_payload  = '{ "request":"payload" }'
@@ -84,9 +87,11 @@ class ltc_lso_log_message implementation.
     cl_abap_unit_assert=>assert_equals( act = me->cut->get_class( ) exp = c_message-msgid ).
   endmethod.
 
+
   method get_date.
-    cl_abap_unit_assert=>assert_equals( act = me->cut->get_date( ) exp = sy-datum ).
+    cl_abap_unit_assert=>assert_equals( act = me->cut->get_date( ) exp = cl_abap_context_info=>get_system_date( ) ).
   endmethod.
+
 
   method get_symsg.
     cl_abap_unit_assert=>assert_equals( act = me->cut->get_symsg( )
@@ -98,14 +103,17 @@ class ltc_lso_log_message implementation.
                                                            msgv3 = 'and type setting industry.' ) ).
   endmethod.
 
+
   method get_number.
     cl_abap_unit_assert=>assert_equals( act = me->cut->get_number( ) exp = c_message-msgno ).
   endmethod.
+
 
   method get_request_payload.
     cl_abap_unit_assert=>assert_equals( act = me->cut->get_request_payload( )
                                         exp = me->trace->get_request_payload( )->get_payload( ) ).
   endmethod.
+
 
   method get_response_payload.
     cl_abap_unit_assert=>assert_equals( act = me->cut->get_response_payload( )
@@ -142,24 +150,25 @@ class ltc_lso_log_message implementation.
 
 
   method get_abap_stack.
-    data(class_absolute) = cast cl_abap_classdescr( cl_abap_classdescr=>describe_by_object_ref( me ) )->absolute_name.
-
-    " \CLASS-POOL=ZCL_LSO_LOG_MESSAGE\CLASS=LTC_LSO_LOG_MESSAGE
-    find regex '^\\CLASS-POOL=([^\\]+)\\CLASS=([^\\]+)$'
-      in class_absolute
-      ignoring case
-      submatches data(global_class) data(local_class).
-
-    cl_abap_unit_assert=>assert_char_cp( act = me->cut->zif_lso_log_message~get_abap_stack( )-abap_program
-                                         exp = |{ condense( global_class ) }*| ).
-
-    cl_abap_unit_assert=>assert_char_cp( act = me->cut->zif_lso_log_message~get_abap_stack( )-abap_include
-                                         exp = |{ condense( global_class ) }*| ).
-
-    cl_abap_unit_assert=>assert_true( boolc( me->cut->zif_lso_log_message~get_abap_stack( )-abap_source_line > 0 ) ).
-
-    cl_abap_unit_assert=>assert_equals( act = me->cut->zif_lso_log_message~get_abap_stack( )-abap_event
-                                        exp = |{ condense( local_class ) }=>SETUP| ).
+    " ABAP Stack is not permitted!
+*    data(class_absolute) = cast cl_abap_classdescr( cl_abap_classdescr=>describe_by_object_ref( me ) )->absolute_name.
+*
+*    " \CLASS-POOL=ZCL_LSO_LOG_MESSAGE\CLASS=LTC_LSO_LOG_MESSAGE
+*    find regex '^\\CLASS-POOL=([^\\]+)\\CLASS=([^\\]+)$'
+*      in class_absolute
+*      ignoring case
+*      submatches data(global_class) data(local_class).
+*
+*    cl_abap_unit_assert=>assert_char_cp( act = me->cut->zif_lso_log_message~get_abap_stack( )-abap_program
+*                                         exp = |{ condense( global_class ) }*| ).
+*
+*    cl_abap_unit_assert=>assert_char_cp( act = me->cut->zif_lso_log_message~get_abap_stack( )-abap_include
+*                                         exp = |{ condense( global_class ) }*| ).
+*
+*    cl_abap_unit_assert=>assert_true( boolc( me->cut->zif_lso_log_message~get_abap_stack( )-abap_source_line > 0 ) ).
+*
+*    cl_abap_unit_assert=>assert_equals( act = me->cut->zif_lso_log_message~get_abap_stack( )-abap_event
+*                                        exp = |{ condense( local_class ) }=>SETUP| ).
   endmethod.
 
 
@@ -192,6 +201,7 @@ class ltc_lso_log_message implementation.
     cl_abap_unit_assert=>assert_false( me->cut->is_abort( ) ).
   endmethod.
 
+
   method save_collection.
     data(message1) = new zcl_lso_log_message( msgty = zif_lso_log_message=>c_type-error
                                               msgid = c_message-msgid
@@ -219,10 +229,9 @@ class ltc_lso_log_message implementation.
 
     data(message3) = message_builder->build( ).
 
-    data(messages) = new cl_object_collection( ).
-    messages->add( message1 ).
-    messages->add( message2 ).
-    messages->add( message3 ).
+    data(messages) = value zlso_tt_log_messages( ( message1->get_object( ) )
+                                                 ( message2->get_object( ) )
+                                                 ( message3->get_object( ) ) ).
 
     " Add messages to the buffer for further tear down.
     me->add_messages_to_teardown( messages ).
@@ -263,14 +272,23 @@ class ltc_lso_log_message implementation.
 
 
   method get_stripped_date.
-    me->cut->set_stripped_date( sy-datum ).
+    me->cut->set_stripped_date( cl_abap_context_info=>get_system_date( ) ).
 
-    cl_abap_unit_assert=>assert_equals( act = me->cut->zif_lso_log_message~get_stripped_date( ) exp = sy-datum ).
+    cl_abap_unit_assert=>assert_equals( act = me->cut->zif_lso_log_message~get_stripped_date( ) exp = cl_abap_context_info=>get_system_date( ) ).
+  endmethod.
+
+
+  method get_object.
+    cl_abap_unit_assert=>assert_equals( act = me->cut->get_object( )
+                                        exp = value zlso_s_log_message( log_id    = me->cut->log_id
+                                                                        log_seqnr = me->cut->log_seqnr
+                                                                        timestamp = me->cut->timestamp
+                                                                        instance  = me->cut ) ).
   endmethod.
 
 
   method is_stripped.
-    me->cut->set_stripped_date( sy-datum ).
+    me->cut->set_stripped_date( cl_abap_context_info=>get_system_date( ) ).
 
     cl_abap_unit_assert=>assert_true( me->cut->zif_lso_log_message~is_stripped( ) ).
   endmethod.
@@ -284,10 +302,25 @@ class ltc_lso_log_message implementation.
 
 
   method clone.
-    data(clone) = cast zcl_lso_log_message( me->cut->if_os_clone~clone( ) ).
+    data(clone) = cast zcl_lso_log_message( me->cut->zif_lso_clone~clone( ) ).
 
     cl_abap_unit_assert=>assert_equals( act = me->cut->get_symsg( )     exp = clone->get_symsg( ) ).
     cl_abap_unit_assert=>assert_equals( act = me->cut->get_timestamp( ) exp = clone->get_timestamp( ) ).
+  endmethod.
+
+
+  method lock_exception.
+    data(msgv) = |ZLSO_LOG_MESSAGE table { me->cut->log_id }/{ me->cut->log_seqnr }|.
+
+    try.
+        raise exception type zcx_lso_log
+          exporting
+            textid   = zcx_lso_log=>lock_error
+            mv_msgv1 = msgv.
+      catch zcx_lso_log into data(cx).
+        cl_abap_unit_assert=>assert_equals( act = cx->get_text( )
+                                            exp = |{ msgv } is locked for writing!| ).
+    endtry.
   endmethod.
 
 endclass.
